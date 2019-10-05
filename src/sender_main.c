@@ -30,24 +30,24 @@ void diep(char *s) {
     exit(1);
 }
 
-void reliablySend(int socket, struct sender_info *sender){
+void* reliablySend(){
     while(1){
-        int windowSize = sender->window_size;
-        file_data* base = sender->window_packet;
+        int windowSize = senderInfo->window_size;
+        file_data* base = senderInfo->window_packet;
         int sendBytes;
         for(int i =0; i < windowSize; i++){
 
             if(i == 0){
                 if(base[i].status == -1){
-                    sendBytes = snedto(socket, base[i].data, base[i].length,
+                    sendBytes = snedto(s, base[i].data, base[i].length,
                         0, &si_other, sizeof(si_other));
                     base[i].status = 0;
-                    gettimeofday(&(sender->timer_start), NULL);
+                    gettimeofday(&(senderInfo->timer_start), NULL);
                 }
 
             } else{
                 if(base[i].status == -1){
-                    sendBytes = snedto(socket, base[i].data, base[i].length,
+                    sendBytes = snedto(s, base[i].data, base[i].length,
                         0, &si_other, sizeof(si_other));
                     base[i].status = 0;
 
@@ -59,10 +59,30 @@ void reliablySend(int socket, struct sender_info *sender){
     }
 }
 
-void recvACK(int socket, struct sender_info *sender){
+void* recvACK(){
     int recvBytes;
     char recvBuffer[msg_total_size];
-    recvfrom(socket, recvBuffer, msg_total_size, );
+    recvfrom(s, recvBuffer, msg_total_size, 0, &si_other, sizeof(si_other));
+
+    /* read ack from buffer */
+    int ACK_seq;
+
+    /* packet sent but not yet ack */
+    if(file_data_array[ACK_seq].status == 0){
+        // ack packet
+        file_data_array[ACK_seq].status = 1;
+        //adjust window size
+        adjust_window_size();
+        // move window base
+        senderInfo->window_packet+1;
+
+    }
+    /* packet duplicate ack */
+    else if(file_data_array[ACK_seq].status == 1){
+        senderInfo->dupACK_num += 1;
+
+
+    }
 
 
 }

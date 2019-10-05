@@ -133,9 +133,9 @@ int int_sender(){
     senderInfo->dev_rtt = 0.0;
     senderInfo->congestion_state = SLOW_START;
     senderInfo->ssthresh = 3.5*pow(10,6);
+    senderInfo->dupACK_num = 0;
     senderInfo->window_packet = NULL;
     senderInfo->window_size = 0;
-    senderInfo->window_base = 0;
     gettimeofday(&(senderInfo->timer_start), NULL);
 
     return 0;

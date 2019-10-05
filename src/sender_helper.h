@@ -32,9 +32,9 @@ typedef struct sender_info {
     float dev_rtt;
     int congestion_state;
     int ssthresh;
+    int dupACK_num;
     file_data* window_packet;
     int window_size;
-    int window_base;
     struct timeval timer_start;
 } sender_info;
 
