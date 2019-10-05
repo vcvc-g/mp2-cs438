@@ -34,12 +34,15 @@ void* reliablySend(){
     while(1){
         int windowSize = senderInfo->window_size;
         file_data* base = senderInfo->window_packet;
-        int sendBytes;
+        int sentBytes;
+        char sendBuffer[msg_total_size];
         for(int i =0; i < windowSize; i++){
-
+            memset(sendBuffer,'\0', msg_total_size);
+            /* need add header in front, currently all data */
+            strncpy(sendBuffer, base[i].data, msg_body_size);
             if(i == 0){
                 if(base[i].status == -1){
-                    sendBytes = snedto(s, base[i].data, base[i].length,
+                    sentBytes = snedto(s, sendBuffer, msg_total_size,
                         0, &si_other, sizeof(si_other));
                     base[i].status = 0;
                     gettimeofday(&(senderInfo->timer_start), NULL);
@@ -47,7 +50,7 @@ void* reliablySend(){
 
             } else{
                 if(base[i].status == -1){
-                    sendBytes = snedto(s, base[i].data, base[i].length,
+                    sentBytes = snedto(s, sendBuffer, msg_total_size,
                         0, &si_other, sizeof(si_other));
                     base[i].status = 0;
 
