@@ -19,7 +19,8 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/time.h>
-#include <sender_helper.h>
+#include "sender_helper.h"
+
 
 struct sockaddr_in si_other;
 int s, slen;
@@ -29,22 +30,26 @@ void diep(char *s) {
     exit(1);
 }
 
-void reliablySend(struct sender_info *sender){
+void reliablySend(int socket, struct sender_info *sender){
     while(1){
         int SWS = sender->window_size;
         int base = sender->window_base;
+        int sendBytes;
         for(int i =0; i < SWS; i++){
+
             if(i == 0){
-                if(sender->packet[base+i] == 0){
-                    snedto();
-                    sneder->packet[base+i] = 1;
+                if(file_data_array[base+i]->state == -1){
+                    sendBytes = snedto(socket, file_data_array[base+i]->data, file_data_array[base+i]->length,
+                        0, &si_other, sizeof(si_other));
+                    file_data_array[base+i]->state = 1;
                     gettimeofday(&(sender->timer_start), NULL);
                 }
 
             } else{
-                if(sender->packet[base+i] == 0){
-                    sendto();
-                    sneder->packet[base+i] = 1;
+                if(file_data_array[base+i]->state == -1){
+                    sendBytes = snedto(socket, file_data_array[base+i]->data, file_data_array[base+i]->length,
+                        0, &si_other, sizeof(si_other));
+                    file_data_array[base+i]->state = 1;
 
                 } else{
                     continue;
@@ -54,6 +59,12 @@ void reliablySend(struct sender_info *sender){
     }
 }
 
+void recvACK(int socket, struct sender_info *sender){
+    int recvBytes;
+    recvfrom()
+
+
+}
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
     //Open the file
@@ -89,6 +100,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
     return;
 
 }
+
 
 /*
  * 
