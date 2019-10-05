@@ -32,24 +32,24 @@ void diep(char *s) {
 
 void reliablySend(int socket, struct sender_info *sender){
     while(1){
-        int SWS = sender->window_size;
-        int base = sender->window_base;
+        int windowSize = sender->window_size;
+        file_data* base = sender->window_packet;
         int sendBytes;
-        for(int i =0; i < SWS; i++){
+        for(int i =0; i < windowSize; i++){
 
             if(i == 0){
-                if(file_data_array[base+i]->state == -1){
-                    sendBytes = snedto(socket, file_data_array[base+i]->data, file_data_array[base+i]->length,
+                if(base[i].status == -1){
+                    sendBytes = snedto(socket, base[i].data, base[i].length,
                         0, &si_other, sizeof(si_other));
-                    file_data_array[base+i]->state = 1;
+                    base[i].status = 0;
                     gettimeofday(&(sender->timer_start), NULL);
                 }
 
             } else{
-                if(file_data_array[base+i]->state == -1){
-                    sendBytes = snedto(socket, file_data_array[base+i]->data, file_data_array[base+i]->length,
+                if(base[i].status == -1){
+                    sendBytes = snedto(socket, base[i].data, base[i].length,
                         0, &si_other, sizeof(si_other));
-                    file_data_array[base+i]->state = 1;
+                    base[i].status = 0;
 
                 } else{
                     continue;
@@ -61,7 +61,8 @@ void reliablySend(int socket, struct sender_info *sender){
 
 void recvACK(int socket, struct sender_info *sender){
     int recvBytes;
-    recvfrom()
+    char recvBuffer[msg_total_size];
+    recvfrom(socket, recvBuffer, msg_total_size, );
 
 
 }
