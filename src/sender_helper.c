@@ -1,4 +1,9 @@
 #include "sender_helper.h"
+#define ALPHA 0.125
+#define BETA  0.25
+#define SAFETY_MARGIN 15
+
+sender_info* senderInfo;
 
 file_data* file_data_array;
 
@@ -74,4 +79,46 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
 }
 
 
+/* 
+Function timeout_interval(): calculate timeout interval for sending packet;
+float estimated_rtt: rtt from last timeout_interval call;
+float sampled_rtt: measured rtt from time();
+*/
+float timeout_interval(float sampled_rtt) {
+    float estimated_rtt = senderInfo->estimated_rtt;
+    float dev_rtt = senderInfo->dev_rtt;
+    /*calculate dev_rrt*/
+    dev_rtt = (1 - BETA) * (dev_rtt) + BETA * abs(sampled_rtt - estimated_rtt);
+    /*calculate estimated_rtt*/
+    estimated_rtt = (1 - ALPHA) * estimated_rtt + ALPHA * sampled_rtt + 4 * dev_rtt;
 
+    /*update dev_rtt*/
+    senderInfo->estimated_rtt = estimated_rtt;
+    senderInfo->dev_rtt = dev_rtt;
+
+    return estimated_rtt;
+}
+
+int adjust_window(){
+    int cur_state = senderInfo->congestion_state;
+    int cur_window_size = senderInfo->window_size;
+    int cur_ssthresh = senderInfo->ssthresh;
+
+    /*case 1: SLOW_START*/
+    if (cur_state == SLOW_START) {
+        senderInfo->window_size =  cur_window_size + msg_total_size;
+        if (senderInfo->window_size >= cur_ssthresh)
+             senderInfo->congestion_state =  CONGESTION_AVOID;
+    }
+
+    /*case 2: CONGESTION_AVOID*/
+    else if (cur_state == CONGESTION_AVOID) {
+        senderInfo->window_size = senderInfo->window_size + msg_total_size*(msg_total_size/cur_window_size);
+    }
+
+    /*case 3: SLOW_START*/
+    else if (cur_state == FAST_RECOVERY) {
+        senderInfo->window_size *=2;
+    }
+
+}
