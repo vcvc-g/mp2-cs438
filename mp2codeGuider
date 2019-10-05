@@ -1,0 +1,127 @@
+Sender:
+       while(1){
+                SWS  = sender_info->windowSize
+                base = sender_info->windowBase
+                1.for(i = 0 ; i < SWS; i++)
+                    if(i == 0 )
+                        if(packet[i + base].status == -1)
+                                send pakcet[i + base];
+                                setup timer;
+                   else
+                        if(packet[i + base].status == -1)
+                                send pakcet[i + base];
+                        else
+                                continue;
+        }
+                    
+        4.recieve_ack
+        while(1){
+                if(not recieve ack)
+                                if(timeout)
+                                        i.unmark all sender msg in winow
+                                        ii.conjestion state->slow_start
+                                        ii.adjust windows size
+                                        ii.adjust the window size
+                                if(!timeout)
+                                        continue;
+                if(recieve)
+                        if ack_numebr > last_recieve_ack
+                                        i.update expect_rtt
+                                        ii.update conjestion state-> go conjest aviod ?
+                                        ii.move window base
+                                        iii.adjust the window size
+                        if ack_numebr = last_recieve_ack
+                                        i.update expect_rtt
+                                        ii.duplicatre_ack + 1
+                                                if(duplicatre_ack == 3)
+                                                        i.update conjestion state->fast_recovery
+                                                        iii.adjust the window size
+                                                else
+                                                        iii.adjust widow size
+        }
+
+0123  3456
+    |
+    | 
+
+    01 2 45
+
+reciever:
+        recieve_packet:
+                while(1){
+                        expect_seq = -1;
+                        pending_ack = -1;
+                        if(timeout)
+                                send(pending_ack)
+                        if(recieve_pakcet)
+                                mark packet[recieve_pakcetNumner] recieved
+                                if(recieve_packetNumer  == window_base){
+                                        start_timer;
+                                        expect_seq = base + 1;
+                                        pending_ack = window_base;
+                                        start_timer;
+                                }
+                                else if(recieve_packetNumer  == pending_ack + 1){
+                                        for(to find the largest connected recieve number)
+                                                send_ack[largest connected recieve number];
+                                                base = recieve_packetNumer + 1;
+                                                last_ack = recieve_packetNumer;
+                                                pending_ack = -1;
+                                }
+                                else if(recieve_packetNumer !=  expect_seq)
+                                        if(pending_ack = -1)
+                                                send_ack[last_ack];
+                                        else  
+                                                send_ack[pending_ack];
+
+                                last receive;
+
+                }
+
+
+0123 4567
+
+        0->set timer
+
+Struct:
+        Recieve{
+                1.read packet
+
+                2.send ack
+                        recieve timer
+        }
+
+        //Sender window struct{
+        //       1.based
+        //        2.windows size
+        //}
+
+        packet msg{
+                1.status:  -1 not send
+                           -2 sent not ack
+                2.sequence 
+        }
+
+
+        sender_info{
+                1.congenstion state
+                2.timer--->check timeout
+                3.windowBase
+                4.windowsSize
+        }
+
+helper function:
+        1.read file & generate data 
+                a.read the fileName into fileBuffer
+                b.seperate the file data into size of each packet should carry
+                c.generate the msgPacket array
+        2.update expect_rtt
+
+        3.update windowsize
+
+        4.recieve write file 
+  
+
+
+        
+    
