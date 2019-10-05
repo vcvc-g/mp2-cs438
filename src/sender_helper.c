@@ -3,9 +3,7 @@
 #define BETA  0.25
 #define SAFETY_MARGIN 15
 
-sender_info* senderInfo;
 
-file_data* file_data_array;
 
 
 // int main(int argc, char* argv[]) {
@@ -67,12 +65,14 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         msg[0] = 'S';
         msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
         msg[2] = (i % max_seq) % 255;
-        for(int j = 0; j < cur_file_length; j++ )
+        for(int j = 0; j < cur_file_length; j++ ){
             msg[j + 3] = *(start_point + j);
+            printf("%c", msg[j + 3]);
+        }
 
         file_data_array[i].data = msg;
         file_data_array[i].length = sender_header_size + cur_file_length;
-        file_data_array[i].data = -1;
+        file_data_array[i].status = -1;
     }
 
      return packet_num;
@@ -89,7 +89,7 @@ float timeout_interval(float sampled_rtt) {
     float estimated_rtt = senderInfo->estimated_rtt;
     float dev_rtt = senderInfo->dev_rtt;
     /*calculate dev_rrt*/
-    dev_rtt = (1 - BETA) * (dev_rtt) + BETA * abs(sampled_rtt - estimated_rtt);
+    dev_rtt = (1 - BETA) * (dev_rtt) + BETA * fabsf(sampled_rtt - estimated_rtt);
     /*calculate estimated_rtt*/
     estimated_rtt = (1 - ALPHA) * estimated_rtt + ALPHA * sampled_rtt + 4 * dev_rtt;
 
@@ -140,3 +140,6 @@ int int_sender(){
 
     return 0;
 }
+
+
+

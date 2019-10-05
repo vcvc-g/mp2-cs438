@@ -10,17 +10,15 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/stat.h>
 #include <signal.h>
-#include <string.h>
 #include <sys/time.h>
-#include <sender_helper.h>
-#
+#include "sender_helper.h"
+
 
 struct sockaddr_in si_other;
 int s, slen;
@@ -30,64 +28,67 @@ void diep(char *s) {
     exit(1);
 }
 
-void reliablySend(struct sender_info *sender){
-    while(1){
-        int SWS = sender->window_size;
-        int base = sender->window_base;
-        for(int i =0; i < SWS; i++){
-            if(i == 0){
-                if(sender->packet[base+i] == 0){
-                    snedto();
-                    sneder->packet[base+i] = 1;
-                    gettimeofday(&(sender->timer_start), NULL);
-                }
+// void reliablySend(struct sender_info *sender){
+//     while(1){
+//         int SWS = sender->window_size;
+//         int base = sender->window_base;
+//         for(int i =0; i < SWS; i++){
+//             if(i == 0){
+//                 if(sender->packet[base+i] == 0){
+//                     snedto();
+//                     sneder->packet[base+i] = 1;
+//                     gettimeofday(&(sender->timer_start), NULL);
+//                 }
 
-            } else{
-                if(sender->packet[base+i] == 0){
-                    sendto();
-                    sneder->packet[base+i] = 1;
+//             } else{
+//                 if(sender->packet[base+i] == 0){
+//                     sendto();
+//                     sneder->packet[base+i] = 1;
 
-                } else{
-                    continue;
-                }
-            }
-        }
-    }
-}
+//                 } else{
+//                     continue;
+//                 }
+//             }
+//         }
+//     }
+// }
 
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
     //Open the file
-    FILE *fp;
-    fp = fopen(filename, "rb");
-    if (fp == NULL) {
-        printf("Could not open file to send.");
-        exit(1);
-    }
+    // FILE *fp;
+    // fp = fopen(filename, "rb");
+    // if (fp == NULL) {
+    //     printf("Could not open file to send.");
+    //     exit(1);
+    // }
+    // fclose(fp);
 
 	/* Determine how many bytes to transfer */
 
 
     /* Setup UDP connection */
-    slen = sizeof (si_other);
+    // slen = sizeof (si_other);
 
-    if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-        diep("socket");
+    // if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+    //     diep("socket");
 
-    memset((char *) &si_other, 0, sizeof (si_other));
-    si_other.sin_family = AF_INET;
-    si_other.sin_port = htons(hostUDPport);
-    if (inet_aton(hostname, &si_other.sin_addr) == 0) {
-        fprintf(stderr, "inet_aton() failed\n");
-        exit(1);
-    }
+    // memset((char *) &si_other, 0, sizeof (si_other));
+    // si_other.sin_family = AF_INET;
+    // si_other.sin_port = htons(hostUDPport);
+    // if (inet_aton(hostname, &si_other.sin_addr) == 0) {
+    //     fprintf(stderr, "inet_aton() failed\n");
+    //     exit(1);
+    // }
 
+    read_file(filename, bytesToTransfer);
+    int_sender();
 
 	/* Send data and receive acknowledgements on s*/
 
-    printf("Closing the socket\n");
-    close(s);
-    return;
+    // printf("Closing the socket\n");
+    // close(s);
+    return ;
 
 }
 
