@@ -61,7 +61,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         cur_file_length = msg_body_size;
         if((i == (packet_num - 1)) && (data_size - i*msg_body_size) != 0)
             cur_file_length = data_size - i*msg_body_size;
-            char* start_point = file + i*msg_body_size;
+        char* start_point = file + i*msg_body_size;
         /*create message*/
         char *msg = malloc(cur_file_length + sender_header_size); 
         msg[0] = 'S';
@@ -72,6 +72,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
 
         file_data_array[i].data = msg;
         file_data_array[i].length = sender_header_size + cur_file_length;
+        file_data_array[i].data = -1;
     }
 
      return packet_num;
@@ -99,7 +100,7 @@ float timeout_interval(float sampled_rtt) {
     return estimated_rtt;
 }
 
-int adjust_window(){
+int adjust_window_size(){
     int cur_state = senderInfo->congestion_state;
     int cur_window_size = senderInfo->window_size;
     int cur_ssthresh = senderInfo->ssthresh;
@@ -116,9 +117,26 @@ int adjust_window(){
         senderInfo->window_size = senderInfo->window_size + msg_total_size*(msg_total_size/cur_window_size);
     }
 
-    /*case 3: SLOW_START*/
+    /*case 3: FAST_RECOVERY*/
     else if (cur_state == FAST_RECOVERY) {
         senderInfo->window_size *=2;
     }
+    
+    return 0;
+}
 
+int int_sender(){
+    senderInfo = malloc(sizeof(sender_info));
+    /*init sender structure*/
+    senderInfo->timeout = 0.0;
+    senderInfo->estimated_rtt = 0.0;
+    senderInfo->dev_rtt = 0.0;
+    senderInfo->congestion_state = SLOW_START;
+    senderInfo->ssthresh = 3.5*pow(10,6);
+    senderInfo->window_packet = NULL;
+    senderInfo->window_size = 0;
+    senderInfo->window_base = 0;
+    gettimeofday(&(senderInfo->timer_start), NULL);
+
+    return 0;
 }
