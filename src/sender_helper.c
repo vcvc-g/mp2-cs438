@@ -54,8 +54,8 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
 
     /*construct the file data array*/
     size_t cur_file_length = 0;
-
-    for(int i = 0; i < packet_num; i++ ){
+    int i;
+    for(i = 0; i < packet_num; i++ ){
         cur_file_length = msg_body_size;
         if((i == (packet_num - 1)) && (data_size - i*msg_body_size) != 0)
             cur_file_length = data_size - i*msg_body_size;
@@ -65,7 +65,8 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         msg[0] = 'S';
         msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
         msg[2] = (i % max_seq) % 255;
-        for(int j = 0; j < cur_file_length; j++ ){
+        int j;
+        for(j = 0; j < cur_file_length; j++ ){
             msg[j + 3] = *(start_point + j);
             printf("%c", msg[j + 3]);
         }
