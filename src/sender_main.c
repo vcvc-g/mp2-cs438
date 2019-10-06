@@ -65,6 +65,8 @@ void *reliablySend(){
     //         }
     //     }
     }
+    
+    return NULL;
 }
 
 void *recieve_ack(){
@@ -79,6 +81,7 @@ void *recieve_ack(){
             printf("change window_size\n");
             pthread_mutex_unlock(&sender_mutex);
     }
+     return NULL;
 }
 
 
@@ -96,48 +99,51 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
 
 
     /* Setup UDP connection */
-    // slen = sizeof (si_other);
+    slen = sizeof (si_other);
 
-    // if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-    //     diep("socket");
+    if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+        diep("socket");
 
-    // memset((char *) &si_other, 0, sizeof (si_other));
-    // si_other.sin_family = AF_INET;
-    // si_other.sin_port = htons(hostUDPport);
-    // if (inet_aton(hostname, &si_other.sin_addr) == 0) {
-    //     fprintf(stderr, "inet_aton() failed\n");
-    //     exit(1);
-    // }
+    memset((char *) &si_other, 0, sizeof (si_other));
+    si_other.sin_family = AF_INET;
+    si_other.sin_port = htons(hostUDPport);
+    if (inet_aton(hostname, &si_other.sin_addr) == 0){
+        fprintf(stderr, "inet_aton() failed\n");
+        exit(1);
+    }
 
-     if (pthread_mutex_init(&sender_mutex, NULL) != 0) 
-    { 
+    /*init a mutex lock for sender thread*/
+    if(pthread_mutex_init(&sender_mutex, NULL) != 0) { 
         printf("\n mutex init has failed\n"); 
-    
     } 
-  
 
+    /*read the file and create packets*/
     read_file(filename, bytesToTransfer);
+
+    /*init sender*/
     int_sender();
 
+    /*send_msg thread for sending packet to reciever*/
     pthread_t send_msg_tid;
 	pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
 
+    /*receive_ack thread for recieve ack from reciever*/
 	pthread_t receive_ACK_tid;
 	pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
 
+    /*terminate thread*/
     pthread_join(send_msg_tid, NULL);
     pthread_join(receive_ACK_tid, NULL);
 
-    //printf("------------------------------------------------1-------------");
     
 	/* Send data and receive acknowledgements on s*/
-    char* test = "weewew";
-    sendto(s, test, 20, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    // char* test = "weewew";
+    // sendto(s, test, 20, 0, (struct sockaddr*)&si_other, sizeof(si_other));
     //printf("-------------------------------------------------------------");
 
     printf("Closing the socket\n");
     close(s);
-    return 0;
+     return NULL;
 }
 
 

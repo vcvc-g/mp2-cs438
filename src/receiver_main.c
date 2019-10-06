@@ -47,17 +47,13 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     printf("Now binding\n");
     if (bind(s, (struct sockaddr*) &si_me, sizeof (si_me)) == -1)
         diep("bind");
-    printf("f?????111111111111111111111111111111");
-	/* Now receive data and send acknowledgements */
-    while(1){
-        printf("sdsf");
-        if ((bytes = recvfrom(s, recvBuf, 100, 0, 
-                        (struct sockaddr*)&si_me, sizeof (si_me))) > 0){
 
-            printf("%d\n", bytes);
-            break;
+	/* Now receive data and send acknowledgements */
+        if ((bytes = recvfrom(s, recvBuf, 100, 0, 
+                        (struct sockaddr*)&sender_addr, &sender_addrLen)) > 0){
+
+            printf("%s\n", recvBuf);
         }
-    }
     close(s);
 	printf("%s received.", destinationFile);
     return;
