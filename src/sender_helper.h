@@ -34,7 +34,6 @@ typedef struct sender_info {
     int ssthresh;
     file_data* window_packet;
     int window_size;
-    int window_base;
     struct timeval timer_start;
 } sender_info;
 

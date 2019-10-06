@@ -23,38 +23,66 @@
 struct sockaddr_in si_other;
 int s, slen;
 
+static pthread_mutex_t sender_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void *recieve_ack();
+
+void *reliablySend();
+
 void diep(char *s) {
     perror(s);
     exit(1);
 }
 
-// void reliablySend(struct sender_info *sender){
-//     while(1){
-//         int SWS = sender->window_size;
-//         int base = sender->window_base;
-//         for(int i =0; i < SWS; i++){
-//             if(i == 0){
-//                 if(sender->packet[base+i] == 0){
-//                     snedto();
-//                     sneder->packet[base+i] = 1;
-//                     gettimeofday(&(sender->timer_start), NULL);
-//                 }
+void *reliablySend(){
+    while(1){
+        pthread_mutex_lock(&sender_mutex);
+            volatile int sws = senderInfo->window_size;
+            if(sws == 5){
+                pthread_mutex_unlock(&sender_mutex);
+                printf("OK\n");
+                break;
+            }
+            pthread_mutex_unlock(&sender_mutex);
+    //     int SWS = sender->window_size;
+    //     int base = sender->window_base;
+    //     for(int i =0; i < SWS; i++){
+    //         if(i == 0){
+    //             if(sender->packet[base+i] == 0){
+    //                 snedto();
+    //                 sneder->packet[base+i] = 1;
+    //                 gettimeofday(&(sender->timer_start), NULL);
+    //             }
 
-//             } else{
-//                 if(sender->packet[base+i] == 0){
-//                     sendto();
-//                     sneder->packet[base+i] = 1;
+    //         } else{
+    //             if(sender->packet[base+i] == 0){
+    //                 sendto();
+    //                 sneder->packet[base+i] = 1;
 
-//                 } else{
-//                     continue;
-//                 }
-//             }
-//         }
-//     }
-// }
+    //             } else{
+    //                 continue;
+    //             }
+    //         }
+    //     }
+    }
+}
+
+void *recieve_ack(){
+    while(1){
+        pthread_mutex_lock(&sender_mutex);
+            if(senderInfo->window_size == 5){
+                printf("changed break;");
+                pthread_mutex_unlock(&sender_mutex);
+                break;
+            }
+            senderInfo->window_size = 5;
+            printf("change window_size\n");
+            pthread_mutex_unlock(&sender_mutex);
+    }
+}
 
 
-void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
+void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
     //Open the file
     // FILE *fp;
     // fp = fopen(filename, "rb");
@@ -81,15 +109,35 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
     //     exit(1);
     // }
 
+     if (pthread_mutex_init(&sender_mutex, NULL) != 0) 
+    { 
+        printf("\n mutex init has failed\n"); 
+    
+    } 
+  
+
     read_file(filename, bytesToTransfer);
     int_sender();
 
+    pthread_t send_msg_tid;
+	pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
+
+	pthread_t receive_ACK_tid;
+	pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
+
+    pthread_join(send_msg_tid, NULL);
+    pthread_join(receive_ACK_tid, NULL);
+
+    //printf("------------------------------------------------1-------------");
+    
 	/* Send data and receive acknowledgements on s*/
+    char* test = "weewew";
+    sendto(s, test, 20, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    //printf("-------------------------------------------------------------");
 
-    // printf("Closing the socket\n");
-    // close(s);
-    return ;
-
+    printf("Closing the socket\n");
+    close(s);
+    return 0;
 }
 
 
@@ -108,12 +156,9 @@ int main(int argc, char** argv) {
     udpPort = (unsigned short int) atoi(argv[2]);
     numBytes = atoll(argv[4]);
 
-
-
     reliablyTransfer(argv[1], udpPort, argv[3], numBytes);
 
-
-    return (EXIT_SUCCESS);
+    return 0;
 }
 
 

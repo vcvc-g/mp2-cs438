@@ -135,7 +135,6 @@ int int_sender(){
     senderInfo->ssthresh = 3.5*pow(10,6);
     senderInfo->window_packet = NULL;
     senderInfo->window_size = 0;
-    senderInfo->window_base = 0;
     gettimeofday(&(senderInfo->timer_start), NULL);
 
     return 0;

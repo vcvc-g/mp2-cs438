@@ -31,6 +31,10 @@ void diep(char *s) {
 void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     
     slen = sizeof (si_other);
+    int bytes;
+    char recvBuf[100];
+    struct sockaddr_in sender_addr;
+    socklen_t sender_addrLen;
 
 
     if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
@@ -45,8 +49,16 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
         diep("bind");
 
 
-	/* Now receive data and send acknowledgements */    
 
+	/* Now receive data and send acknowledgements */
+    while(1){
+        if ((bytes = recvfrom(s, recvBuf, 100, 0, 
+                        (struct sockaddr*)&sender_addr, &sender_addrLen)) == -1){
+
+            printf("%d\n", bytes);
+            break;
+        }
+    }
     close(s);
 	printf("%s received.", destinationFile);
     return;
