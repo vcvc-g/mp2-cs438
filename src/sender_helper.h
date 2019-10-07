@@ -8,7 +8,7 @@
 #define sender_header_size 3
 #define msg_total_size 1463
 #define max_seq 720
-#define SWS 360
+
 typedef struct file_data_struct{
     size_t length;
     char* data;
@@ -34,7 +34,8 @@ typedef struct sender_info {
     int ssthresh;
     file_data* window_packet;
     int window_size;
-    struct timeval timer_start;
+    struct timeval* timer_start;
+    int last_ack_seq;
 } sender_info;
 
 
@@ -56,5 +57,5 @@ float timeout_interval(float sampled_rtt);
 
 int adjust_window_size();
 
-int int_sender();
+int init_sender();
 

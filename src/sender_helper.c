@@ -125,7 +125,7 @@ int adjust_window_size(){
     return 0;
 }
 
-int int_sender(){
+int init_sender(){
     senderInfo = malloc(sizeof(sender_info));
     /*init sender structure*/
     senderInfo->timeout = 0.0;
@@ -135,8 +135,8 @@ int int_sender(){
     senderInfo->ssthresh = 3.5*pow(10,6);
     senderInfo->window_packet = NULL;
     senderInfo->window_size = 0;
-    gettimeofday(&(senderInfo->timer_start), NULL);
-
+    senderInfo->timer_start = NULL;
+    senderInfo->last_ack_seq = -1;
     return 0;
 }
 
