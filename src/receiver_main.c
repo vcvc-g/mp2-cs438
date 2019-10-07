@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include "receiver_helper.h"
 
+#define FILENAME "recv_output"
 
 
 
@@ -28,34 +29,47 @@ void diep(char *s) {
     exit(1);
 }
 
+FILE *create_file(char *fileName){
+	FILE * fPtr = NULL;
+	fPtr = fopen(fileName, "wb");
+	if (!fPtr )
+		printf("create file failed");
+	printf("\nrecv_output created\n");
+    return fPtr;
+}
 
-void recv_packet(){
-    int recvBytes;
+void *recv_packet(){
+    char ACK[msg_total_size]; // ACK msg for sender
+    int recvBytes, sentBytes;
+
+    ACK[0] = 'A';
+
     while(1){
         char recvBuffer[msg_total_size];
 	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, &si_me, sizeof(si_me))) == -1) {
             perror("receiver recvfrom failed\n");
             exit(1);
         }
-        // if(recieve_packetNumer  == window_base){
-            // start_timer;
-            // expect_seq = base + 1;
-            // pending_ack = window_base;
-            // start_timer;
-        //                         }
-        // else if(recieve_packetNumer  == pending_ack + 1){
-            // for(to find the largest connected recieve number)
-            //     send_ack[largest connected recieve number];
-            //     base = recieve_packetNumer + 1;
-            //     last_ack = recieve_packetNumer;
-            //     pending_ack = -1;
+
+        /* Read header and response */
+        // if((SYNACK(seq=y, ACKnum=x+1))&(recvInfo->state == SYN_SENT)){
+        //     sendto(ACK(ACKnum=y+1));
+        //     recvInfo->state = ESTAB;
         // }
-        // else if(recieve_packetNumer !=  expect_seq)
-            // if(pending_ack = -1)
-            //         send_ack[last_ack];
-            // else  
-            //         send_ack[pending_ack];
-        
+
+        if(recvInfo->state == ESTAB){
+            handle_packet(recvBuffer);
+            sentBytes = snedto(s, ACK, msg_total_size, 0, &si_other, sizeof(si_other));
+        }
+
+        // else if(){
+        //     recvInfo->state = FIN_WAIT2
+        // }   
+        // else if(){
+        //     recvInfo->state = TIME_WAIT
+        //     timer 30s
+        //     recvInfo->state = CLOSED
+        // }           
 
     }
 }
@@ -79,11 +93,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 
 	/* Create recv_output file */
-	FILE * fPtr = NULL;
-	fPtr = fopen("recv_output", "wb");
-	if (!fPtr )
-		printf("create file failed");
-	printf("\nrecv_output created\n");
+    create_file(FILENAME);
 
 	/* Now receive data and send acknowledgements */   
 
