@@ -29,7 +29,7 @@ void diep(char *s) {
 
 
 void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
-    
+    printf("f?????");
     slen = sizeof (si_other);
     int bytes;
     char recvBuf[100];
@@ -48,14 +48,11 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     if (bind(s, (struct sockaddr*) &si_me, sizeof (si_me)) == -1)
         diep("bind");
 
-
-
 	/* Now receive data and send acknowledgements */
     while(1){
         if ((bytes = recvfrom(s, recvBuf, 100, 0, (struct sockaddr*)&si_other, &si_other)) == -1){
 
-            printf("%d\n", bytes);
-            break;
+            printf("%s\n", recvBuf);
         }
     }
     close(s);
@@ -78,5 +75,7 @@ int main(int argc, char** argv) {
     udpPort = (unsigned short int) atoi(argv[1]);
 
     reliablyReceive(udpPort, argv[2]);
+
+    return 0;
 }
 

@@ -63,6 +63,8 @@ void *reliablySend(){
         }
         pthread_mutex_unlock(&sender_mutex);
     }
+    
+    return NULL;
 }
 
 void *recieve_ack(){
@@ -97,6 +99,7 @@ void *recieve_ack(){
         pthread_mutex_lock(&sender_mutex);
         
     }
+     return NULL;
 }
 
 
@@ -127,26 +130,27 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
         exit(1);
     }
 
-     if (pthread_mutex_init(&sender_mutex, NULL) != 0) 
-    { 
+    /*init a mutex lock for sender thread*/
+    if(pthread_mutex_init(&sender_mutex, NULL) != 0) { 
         printf("\n mutex init has failed\n"); 
-    
     } 
   
     /* Send data and receive acknowledgements on s*/
     read_file(filename, bytesToTransfer);
     init_sender();
 
+    /*send_msg thread for sending packet to reciever*/
     pthread_t send_msg_tid;
 	pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
 
+    /*receive_ack thread for recieve ack from reciever*/
 	pthread_t receive_ACK_tid;
 	pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
 
+    /*terminate thread*/
     pthread_join(send_msg_tid, NULL);
     pthread_join(receive_ACK_tid, NULL);
 
-    //printf("------------------------------------------------1-------------");
     
 	
     // char* test = "weewew";
@@ -155,7 +159,7 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
 
     printf("Closing the socket\n");
     close(s);
-    return 0;
+     return NULL;
 }
 
 
