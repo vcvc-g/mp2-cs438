@@ -1,9 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include "receiver_helper.h"
 
 
@@ -18,13 +12,12 @@ void write_file(char *buf, int length, FILE* fptr){
 }
    
 
-void handle_packet(char *packet){
+void handle_packet(char *packet, int recv_seq){
 
-    int window_idx, recv_seq, i; // packet sequence number 
+    int window_idx, i; // packet sequence number 
     size_t data_len;
     /* need data length, sequence number in packet header */
     // data_len = ??
-    // recv_seq = packet[??];
     window_idx = recv_seq % RWS;
 
     /* copy packet data to receiver buffer, mark 1 for packet in recv_window */
@@ -53,7 +46,7 @@ void handle_packet(char *packet){
 /*init receiver structure*/
 int int_receiver(){
     recvInfo = malloc(sizeof(recv_info));
-    recvInfo->state = ESTAB; // FOR TESTING
+    recvInfo->state = CLOSED; // FOR TESTING
     recvInfo->last_ack = -1;
     recvInfo->next_expected = 0;
     memset(recvInfo->recv_window, 0, RWS);

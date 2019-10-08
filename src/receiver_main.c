@@ -10,11 +10,14 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/stat.h>
+#include <signal.h>
+#include <sys/time.h>
+
 #include "receiver_helper.h"
 
 
@@ -22,30 +25,33 @@
 
 struct sockaddr_in si_me, si_other;
 int s, slen;
+//static int fptr;
 
 void diep(char *s) {
     perror(s);
     exit(1);
 }
 
-FILE *create_file(char *fileName){
-	FILE * fPtr = NULL;
-	fPtr = fopen(fileName, "wb");
+void create_file(char *fileName){
+
+	fPtr = fopen("output", "wb"); //FILE NAME OUTPUT FOR TESTING
 	if (!fPtr )
 		printf("create file failed");
 	printf("\nrecv_output created\n");
-    return fPtr;
+
 }
 
 void *recv_packet(){
     char ACK[msg_total_size]; // ACK msg for sender
     int recvBytes, sentBytes;
 
+    int recv_seq = 0; // FOR TESTING
+
     ACK[0] = 'A';
 
     while(1){
         char recvBuffer[msg_total_size];
-	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, &si_other, sizeof(si_other))) == -1) {
+	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, sizeof(si_other))) == -1) {
             perror("receiver recvfrom failed\n");
             exit(1);
         }
@@ -57,10 +63,12 @@ void *recv_packet(){
         // }
 
         if(recvInfo->state == ESTAB){
-            handle_packet(recvBuffer);
+            // int recv_seq = recvBuffer[1]*255 + recvBuffer[2];
+            handle_packet(recvBuffer, recv_seq);
             printf("handle msg packet OK\n");
-            sentBytes = snedto(s, ACK, msg_total_size, 0, &si_me, sizeof(si_me));
+            sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_me, sizeof(si_me));
             printf("send ACK packet OK\n");
+            recv_seq ++; // FOR TESTING
         }
 
         // else if(){
@@ -94,7 +102,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 
 	/* Create recv_output file */
-    fPtr = create_file(destinationFile);
+    create_file(destinationFile);
 
     int_receiver();
 	/* Now receive data and send acknowledgements */   
@@ -110,6 +118,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 
     close(s);
+    close(fPtr);
 	printf("%s received.", destinationFile);
     return;
 }

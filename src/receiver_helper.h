@@ -1,7 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/types.h>
-#include <math.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/stat.h>
+#include <signal.h>
 #include <sys/time.h>
 
 #define msg_header_size 3
@@ -32,5 +39,5 @@ enum recv_state {
 recv_info *recvInfo;
 FILE *fPtr;
 
-void handle_packet(char *packet);
+void handle_packet(char *packet, int recv_seq);
 int int_receiver();
