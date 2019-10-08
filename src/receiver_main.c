@@ -17,7 +17,6 @@
 #include <pthread.h>
 #include "receiver_helper.h"
 
-#define FILENAME "recv_output"
 
 
 
@@ -46,11 +45,11 @@ void *recv_packet(){
 
     while(1){
         char recvBuffer[msg_total_size];
-	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, &si_me, sizeof(si_me))) == -1) {
+	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, &si_other, sizeof(si_other))) == -1) {
             perror("receiver recvfrom failed\n");
             exit(1);
         }
-
+        printf("receive packet OK\n");
         /* Read header and response */
         // if((SYNACK(seq=y, ACKnum=x+1))&(recvInfo->state == SYN_SENT)){
         //     sendto(ACK(ACKnum=y+1));
@@ -59,7 +58,9 @@ void *recv_packet(){
 
         if(recvInfo->state == ESTAB){
             handle_packet(recvBuffer);
-            sentBytes = snedto(s, ACK, msg_total_size, 0, &si_other, sizeof(si_other));
+            printf("handle msg packet OK\n");
+            sentBytes = snedto(s, ACK, msg_total_size, 0, &si_me, sizeof(si_me));
+            printf("send ACK packet OK\n");
         }
 
         // else if(){
@@ -93,10 +94,18 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 
 	/* Create recv_output file */
-    create_file(FILENAME);
+    fPtr = create_file(destinationFile);
 
+    int_receiver();
 	/* Now receive data and send acknowledgements */   
+    pthread_t recv_tid;
+    pthread_create(&recv_tid, 0, recv_packet, (void *)0);
 
+    // pthread_t time_tid;
+    // pthread_create(&time_tid, 0, time_out, (void *)0);
+
+    pthread_join(recv_tid, NULL);
+    // pthread_join(time_tid, NULL);
 
 
 

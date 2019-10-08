@@ -33,3 +33,4 @@ recv_info *recvInfo;
 FILE *fPtr;
 
 void handle_packet(char *packet);
+int int_receiver();

@@ -12,7 +12,7 @@ void write_file(char *buf, int length, FILE* fptr){
 
     if(fptr){
         fwrite(&buf, length, 1, fptr);
-        puts("Packet write into file\n");
+        puts("msg packet write into file OK\n");
     }
 
 }
@@ -29,8 +29,8 @@ void handle_packet(char *packet){
 
     /* copy packet data to receiver buffer, mark 1 for packet in recv_window */
     if(recv_seq - recvInfo->next_expected <= RWS){
-        memcpy(recvInfo->recv_buffer[window_idx], packet+msg_header_size, data_len);
-        recvInfo->recv_dataLen[window_idx] = data_len;
+        memcpy(recvInfo->recv_buffer[window_idx], packet+msg_header_size, msg_body_size); // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
+        recvInfo->recv_dataLen[window_idx] = msg_body_size; // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
         recvInfo->recv_window[window_idx] = 1;
     }
 
@@ -53,9 +53,10 @@ void handle_packet(char *packet){
 /*init receiver structure*/
 int int_receiver(){
     recvInfo = malloc(sizeof(recv_info));
-    recvInfo->state = CLOSED;
+    recvInfo->state = ESTAB; // FOR TESTING
     recvInfo->last_ack = -1;
     recvInfo->next_expected = 0;
+    memset(recvInfo->recv_window, 0, RWS);
 
     return 0;
 }
