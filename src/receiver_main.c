@@ -37,21 +37,21 @@ void create_file(char *fileName){
 	fPtr = fopen("output", "wb"); //FILE NAME OUTPUT FOR TESTING
 	if (!fPtr )
 		printf("create file failed");
-	printf("\nrecv_output created\n");
+	printf("file create OK\n");
 
 }
 
 void *recv_packet(){
     char ACK[msg_total_size]; // ACK msg for sender
     int recvBytes, sentBytes;
-
     int recv_seq = 0; // FOR TESTING
 
     ACK[0] = 'A';
+    printf("recv thread OK\n");
 
     while(1){
         char recvBuffer[msg_total_size];
-	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, sizeof(si_other))) == -1) {
+	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, &slen)) == -1) {
             perror("receiver recvfrom failed\n");
             exit(1);
         }
@@ -62,14 +62,14 @@ void *recv_packet(){
         //     recvInfo->state = ESTAB;
         // }
 
-        if(recvInfo->state == ESTAB){
+        // if(recvInfo->state == ESTAB){
             // int recv_seq = recvBuffer[1]*255 + recvBuffer[2];
-            handle_packet(recvBuffer, recv_seq);
-            printf("handle msg packet OK\n");
-            sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_me, sizeof(si_me));
-            printf("send ACK packet OK\n");
-            recv_seq ++; // FOR TESTING
-        }
+        handle_packet(recvBuffer, recv_seq);
+        printf("handle msg packet OK\n");
+        sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+        printf("send ACK packet OK\n");
+        recv_seq ++; // FOR TESTING
+        // }
 
         // else if(){
         //     recvInfo->state = FIN_WAIT2
@@ -108,10 +108,6 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	/* Now receive data and send acknowledgements */   
     pthread_t recv_tid;
     pthread_create(&recv_tid, 0, recv_packet, (void *)0);
-
-    // pthread_t time_tid;
-    // pthread_create(&time_tid, 0, time_out, (void *)0);
-
     pthread_join(recv_tid, NULL);
     // pthread_join(time_tid, NULL);
 

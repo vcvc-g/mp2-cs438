@@ -34,6 +34,7 @@ void diep(char *s) {
 }
 
 void *reliablySend(){
+    printf("send thread create OK\n");
     while(1){
         // pthread_mutex_lock(&sender_mutex);
         //     volatile int sws = senderInfo->window_size;
@@ -54,10 +55,12 @@ void *reliablySend(){
             if((base[0].status != -1))
                 continue;
             if(i == 0){
+                printf("send data  OK\n");
                 sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                 gettimeofday(senderInfo->timer_start, NULL);
             }
             else{
+                printf("send data  OK\n");
                 sendto(s, base[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
             }
         }
@@ -144,12 +147,12 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
 	pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
 
     /*receive_ack thread for recieve ack from reciever*/
-	pthread_t receive_ACK_tid;
-	pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
+	// pthread_t receive_ACK_tid;
+	// pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
 
     /*terminate thread*/
     pthread_join(send_msg_tid, NULL);
-    pthread_join(receive_ACK_tid, NULL);
+    // pthread_join(receive_ACK_tid, NULL);
 
     
 	

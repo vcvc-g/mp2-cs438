@@ -50,6 +50,7 @@ int int_receiver(){
     recvInfo->last_ack = -1;
     recvInfo->next_expected = 0;
     memset(recvInfo->recv_window, 0, RWS);
+    printf("receiver init OK\n");
 
     return 0;
 }
