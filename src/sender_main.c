@@ -143,22 +143,22 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     init_sender();
 
     /*send_msg thread for sending packet to reciever*/
-    pthread_t send_msg_tid;
-	pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
+    // pthread_t send_msg_tid;
+	// pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
 
     /*receive_ack thread for recieve ack from reciever*/
 	// pthread_t receive_ACK_tid;
 	// pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
 
     /*terminate thread*/
-    pthread_join(send_msg_tid, NULL);
+    // pthread_join(send_msg_tid, NULL);
     // pthread_join(receive_ACK_tid, NULL);
 
     
 	
-    // char* test = "weewew";
-    // sendto(s, test, 20, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-    //printf("-------------------------------------------------------------");
+    char* test = "22222222222222222222";
+    sendto(s, test, 20, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    printf("-------------------------------------------------------------");
 
     printf("Closing the socket\n");
     close(s);

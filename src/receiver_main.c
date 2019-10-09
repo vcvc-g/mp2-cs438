@@ -65,9 +65,9 @@ void *recv_packet(){
         // if(recvInfo->state == ESTAB){
             // int recv_seq = recvBuffer[1]*255 + recvBuffer[2];
         handle_packet(recvBuffer, recv_seq);
-        printf("handle msg packet OK\n");
-        sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_me, sizeof(si_me));
-        printf("send ACK packet OK\n");
+        printf("handle msg packet OK\n\n\n");
+        // sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+        // printf("send ACK packet OK\n");
         recv_seq ++; // FOR TESTING
         // }
 
@@ -109,6 +109,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     pthread_t recv_tid;
     pthread_create(&recv_tid, 0, recv_packet, (void *)0);
     pthread_join(recv_tid, NULL);
+    printf("Thread finished\n");
     // pthread_join(time_tid, NULL);
 
 
