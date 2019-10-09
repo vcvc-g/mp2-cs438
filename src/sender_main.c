@@ -34,7 +34,7 @@ void diep(char *s) {
 }
 
 void *reliablySend(){
-       struct timeval timer_now, timer_diff;
+    struct timeval timer_now, timer_diff;
     while(1){
         // pthread_mutex_lock(&sender_mutex);
         //     volatile int sws = senderInfo->window_size;
@@ -82,6 +82,7 @@ void *reliablySend(){
                         i = i - 1;
                         continue;
                     }
+                    
                 }
                 else
                     continue;

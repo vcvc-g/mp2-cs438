@@ -12,45 +12,46 @@ void write_file(char *buf, int length, FILE* fptr){
 }
    
 
-void handle_packet(char *packet, int recv_seq){
+void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int length){
+     size_t data_len, i;
 
-    int window_idx, i; // packet sequence number 
-    size_t data_len;
-    /* need data length, sequence number in packet header */
-    // data_len = ??
-    window_idx = recv_seq % RWS;
-
-    /* copy packet data to receiver buffer, mark 1 for packet in recv_window */
-    if(recv_seq - recvInfo->next_expected <= RWS){
-        memcpy(recvInfo->recv_buffer[window_idx], packet+msg_header_size, msg_body_size); // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
-        recvInfo->recv_dataLen[window_idx] = msg_body_size; // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
-        recvInfo->recv_window[window_idx] = 1;
-    }
-
-    /* loop through window, write in order data to file */
-    for(i = 0; i < RWS; i++){
-        window_idx = recvInfo->next_expected%RWS+i;
-        if(recvInfo->recv_window[window_idx]){
-            write_file(recvInfo->recv_buffer[window_idx], recvInfo->recv_dataLen[window_idx], fPtr); 
+    /*check if recv_seq in window */
+    int expected_seq = recvInfo->next_expected;
+    /*check if in the window*/
+    /*recv_----->720, expected---->720*/
+    if((((0 < (recv_seq - expected_seq)) && (recv_seq - expected_seq)) < RWS) ||
+            (recv_seq + MAX_SEQ_NUM - expected_seq < RWS)){
+        int window_idx = expected_seq % RWS;
+        /*check duplicate*/
+        if(recvInfo->recv_window[window_idx] != 1){
+            /* copy packet data to receiver buffer, mark 1 for packet in recv_window */
+            memcpy(recvInfo->recv_buffer[window_idx], data, msg_body_size); // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
+            recvInfo->recv_dataLen[window_idx] = length; // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
+            recvInfo->recv_window[window_idx] = 1;
+        }
+        for(i = 0; i < RWS; i++){
+            if(recvInfo->recv_window[window_idx]){
+            write_file(recvInfo->recv_buffer[window_idx], recvInfo->recv_dataLen[window_idx], dest); 
             recvInfo->recv_window[window_idx] = 0;
-        }else
-            break;
-        
+            }
+            else
+                break;
+        }
+        recvInfo->next_expected = (recvInfo->next_expected + 1 + i)% MAX_SEQ_NUM;
     }
-    /* update expected seq number */
-    recvInfo->next_expected += i;
+    return;
 
 }
 
    
 /*init receiver structure*/
-int int_receiver(){
-    recvInfo = malloc(sizeof(recv_info));
+recv_info* int_receiver(){
+    recv_info* recvInfo = malloc(sizeof(recv_info));
     recvInfo->state = CLOSED; // FOR TESTING
     recvInfo->last_ack = -1;
     recvInfo->next_expected = 0;
     memset(recvInfo->recv_window, 0, RWS);
     printf("receiver init OK\n");
 
-    return 0;
+    return recvInfo;
 }

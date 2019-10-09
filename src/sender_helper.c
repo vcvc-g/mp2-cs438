@@ -65,6 +65,8 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         msg[0] = 'S';
         msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
         msg[2] = (i % max_seq) % 255;
+        msg[3] = cur_file_length % 1400;
+        msg[4] = cur_file_length % 255;
         for(j = 0; j < cur_file_length; j++ ){
             msg[j + 3] = *(start_point + j);
             printf("%c", msg[j + 3]);
@@ -181,7 +183,7 @@ int init_sender(){
     senderInfo->estimated_rtt = 0.0;
     senderInfo->dev_rtt = 0.0;
     senderInfo->congestion_state = SLOW_START;
-    senderInfo->ssthresh = 2333;
+    senderInfo->ssthresh = max_window_size;
     senderInfo->window_packet = NULL;
     senderInfo->window_size = 0;
     senderInfo->timer_start = NULL;
