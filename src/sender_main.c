@@ -56,7 +56,7 @@ void *reliablySend(){
             if((base[i].status == 1))
                 continue;
             /*case 2: not send yet*/
-            if((base[i].status == -1)){
+            else if((base[i].status == -1)){
                 if(i == 0){
                     sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                     gettimeofday(senderInfo->timer_start, NULL);
@@ -69,18 +69,26 @@ void *reliablySend(){
             }
 
             /*case 3:sended not ack yet*/
-            if((base[i].status == 0)){
+            else if((base[i].status == 0)){
                 if(i == 0){
-                    //sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                    /*check timeout*/
                     gettimeofday(senderInfo->timer_start, NULL);
                     timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-                    
+                    float sample_rtt = timer_diff.tv_usec / million;
+                    if(sample_rtt > senderInfo->timeout){
+                        adjust_window_size(1, 0);
+                        /*reset index to resend*/
+                        base[i].status = -1;
+                        i = i - 1;
+                        continue;
+                    }
                 }
                 else
                     continue;
             }
             
         }
+        /*release lack*/
         pthread_mutex_unlock(&sender_mutex);
     }
     
@@ -89,7 +97,7 @@ void *reliablySend(){
 
 void *recieve_ack(){
     char recvBuf[100];
-    int byte;
+    int byte, i;
     struct sockaddr_in si_me;
     int cur_seq;
     struct timeval timer_now, timer_diff;
@@ -111,6 +119,8 @@ void *recieve_ack(){
         if(recvBuf[0] == 'A'){
             /*calculate the new timeout interval*/
             gettimeofday(&timer_now, NULL);
+            /*grab the lock*/
+            pthread_mutex_unlock(&sender_mutex);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
             float sample_rtt = timer_diff.tv_usec / million;
             senderInfo->timeout = timeout_interval(sample_rtt);
@@ -118,21 +128,33 @@ void *recieve_ack(){
             /*find the sequence numebr*/
             cur_seq = recvBuf[1]*255 + recvBuf[2];
             int expected_seq = (senderInfo->window_packet)->seq;
+            /*first ack*/
+            if(senderInfo->last_ack_seq == -1)
+                senderInfo->last_ack_seq = cur_seq;
             
             /*case 1: sequence number match*/
             if(expected_seq == cur_seq){
                 senderInfo->last_ack_seq = cur_seq;
+                /*find the coresponding packet for this ack*/
+                /*this part can be improved*/            
+                for(i = 0; i < senderInfo->window_size; i++){
+                    if((senderInfo->window_packet + i)->seq == cur_seq)
+                        (senderInfo->window_packet + i)->status = 1;
+                }
                 /*clear duplicate ACK*/
                 senderInfo->duplicate_ack = 0;
-                adjust_window_size(0);
-                break;
+                /*adjust window*/
+                adjust_window_size(0, 0);
+                /*chage window base*/
+                senderInfo->window_packet = senderInfo->window_packet + i + 1;
+                /*release the lock*/
+                pthread_mutex_unlock(&sender_mutex);
+                continue;
             }
             
             /*case 2: sequence number greater than expected*/
-            if(senderInfo->last_ack_seq  == -1){
-    /******************this part maybe can improve****************************/
-                /*find the coresponding packet for this ack*/
-                int i;
+            if(expected_seq < cur_seq){
+                /*change the status of currect ack*/
                 for(i = 0; i < senderInfo->window_size; i++){
                     if((senderInfo->window_packet + i)->seq == cur_seq)
                         (senderInfo->window_packet + i)->status = 1;
@@ -140,13 +162,30 @@ void *recieve_ack(){
                 /*increment duplicated ack*/
                 if(senderInfo->duplicate_ack != -1)
                     senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
-
-                /*adjust the window size*/
-                adjust_window_size(0);
-
+                else
+                    senderInfo->duplicate_ack = 1;
+                /*adjust window size*/
+                adjust_window_size(0, 1);
+                /*release the lock*/
+                pthread_mutex_unlock(&sender_mutex);
+                continue;
             }
 
-        pthread_mutex_lock(&sender_mutex);
+             
+            /*case 3: sequence number less than expected*/
+            if(expected_seq > cur_seq){
+                /*increment duplicated ack*/
+                if(senderInfo->duplicate_ack != -1)
+                    senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
+                else
+                    senderInfo->duplicate_ack = 1;
+                /*adjust window size*/
+                adjust_window_size(0, 1);
+                /*release the lock*/
+                pthread_mutex_unlock(&sender_mutex);
+                continue;
+            }
+        }
         
     }
      return NULL;
