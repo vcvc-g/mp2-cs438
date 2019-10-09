@@ -34,6 +34,7 @@ void diep(char *s) {
 }
 
 void *reliablySend(){
+       struct timeval timer_now, timer_diff;
     while(1){
         // pthread_mutex_lock(&sender_mutex);
         //     volatile int sws = senderInfo->window_size;
@@ -51,15 +52,34 @@ void *reliablySend(){
         file_data* base = senderInfo->window_packet;
         int i;
         for(i = 0; i < sws; i++){
-            if((base[0].status != -1))
+            /*case 1: sended and ack just skip*/
+            if((base[i].status == 1))
                 continue;
-            if(i == 0){
-                sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-                gettimeofday(senderInfo->timer_start, NULL);
+            /*case 2: not send yet*/
+            if((base[i].status == -1)){
+                if(i == 0){
+                    sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                    gettimeofday(senderInfo->timer_start, NULL);
+                    base[0].status = 0;
+                }
+                else{
+                    sendto(s, base[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                    base[i].status = 0;
+                }
             }
-            else{
-                sendto(s, base[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+
+            /*case 3:sended not ack yet*/
+            if((base[i].status == 0)){
+                if(i == 0){
+                    //sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                    gettimeofday(senderInfo->timer_start, NULL);
+                    timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+                    
+                }
+                else
+                    continue;
             }
+            
         }
         pthread_mutex_unlock(&sender_mutex);
     }
@@ -71,7 +91,7 @@ void *recieve_ack(){
     char recvBuf[100];
     int byte;
     struct sockaddr_in si_me;
-    int seqnumber;
+    int cur_seq;
     struct timeval timer_now, timer_diff;
     while(1){
         // pthread_mutex_lock(&sender_mutex);
@@ -87,14 +107,44 @@ void *recieve_ack(){
             perror("Recieve Failed");
             exit(1);
         }
+        /*case recieve an ack*/
         if(recvBuf[0] == 'A'){
+            /*calculate the new timeout interval*/
             gettimeofday(&timer_now, NULL);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+            float sample_rtt = timer_diff.tv_usec / million;
+            senderInfo->timeout = timeout_interval(sample_rtt);
 
-            seqnumber = recvBuf[1]*255 + recvBuf[2];
-            if(senderInfo->last_ack_seq == -1)
-                senderInfo->last_ack_seq == seqnumber;
-        }
+            /*find the sequence numebr*/
+            cur_seq = recvBuf[1]*255 + recvBuf[2];
+            int expected_seq = (senderInfo->window_packet)->seq;
+            
+            /*case 1: sequence number match*/
+            if(expected_seq == cur_seq){
+                senderInfo->last_ack_seq = cur_seq;
+                /*clear duplicate ACK*/
+                senderInfo->duplicate_ack = 0;
+                adjust_window_size(0);
+                break;
+            }
+            
+            /*case 2: sequence number greater than expected*/
+            if(senderInfo->last_ack_seq  == -1){
+    /******************this part maybe can improve****************************/
+                /*find the coresponding packet for this ack*/
+                int i;
+                for(i = 0; i < senderInfo->window_size; i++){
+                    if((senderInfo->window_packet + i)->seq == cur_seq)
+                        (senderInfo->window_packet + i)->status = 1;
+                }
+                /*increment duplicated ack*/
+                if(senderInfo->duplicate_ack != -1)
+                    senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
+
+                /*adjust the window size*/
+                adjust_window_size(0);
+
+            }
 
         pthread_mutex_lock(&sender_mutex);
         

@@ -47,6 +47,7 @@ Sender:
     01 2 45
 
 reciever:
+//send ack for every recieve ack;
         recieve_packet:
                 while(1){
                         expect_seq = -1;

@@ -29,7 +29,6 @@ void diep(char *s) {
 
 
 void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
-    printf("f?????");
     slen = sizeof (si_other);
     int bytes;
     char recvBuf[100];
