@@ -3,9 +3,7 @@
 #define BETA  0.25
 #define SAFETY_MARGIN 15
 
-sender_info* senderInfo;
 
-file_data* file_data_array;
 
 
 // int main(int argc, char* argv[]) {
@@ -32,6 +30,7 @@ file_data* file_data_array;
 // }
 
 int read_file(char* filename, unsigned long long int bytesToTransfer){
+    int i, j;
     FILE* fd = fopen(filename, "r");
     if (fd == NULL) {
         printf("ERROR: FILE OPEN FAILED\n");
@@ -56,8 +55,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
 
     /*construct the file data array*/
     size_t cur_file_length = 0;
-
-    for(int i = 0; i < packet_num; i++ ){
+    for(i = 0; i < packet_num; i++ ){
         cur_file_length = msg_body_size;
         if((i == (packet_num - 1)) && (data_size - i*msg_body_size) != 0)
             cur_file_length = data_size - i*msg_body_size;
@@ -67,12 +65,14 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         msg[0] = 'S';
         msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
         msg[2] = (i % max_seq) % 255;
-        for(int j = 0; j < cur_file_length; j++ )
+        for(j = 0; j < cur_file_length; j++ ){
             msg[j + 3] = *(start_point + j);
+            printf("%c", msg[j + 3]);
+        }
 
         file_data_array[i].data = msg;
         file_data_array[i].length = sender_header_size + cur_file_length;
-        file_data_array[i].data = -1;
+        file_data_array[i].status = -1;
     }
 
      return packet_num;
@@ -91,7 +91,7 @@ float timeout_interval(float sampled_rtt) {
     float estimated_rtt = senderInfo->estimated_rtt;
     float dev_rtt = senderInfo->dev_rtt;
     /*calculate dev_rrt*/
-    dev_rtt = (1 - BETA) * (dev_rtt) + BETA * abs(sampled_rtt - estimated_rtt);
+    dev_rtt = (1 - BETA) * (dev_rtt) + BETA * fabsf(sampled_rtt - estimated_rtt);
     /*calculate estimated_rtt*/
     estimated_rtt = (1 - ALPHA) * estimated_rtt + ALPHA * sampled_rtt + 4 * dev_rtt;
 
@@ -127,7 +127,7 @@ int adjust_window_size(){
     return 0;
 }
 
-int int_sender(){
+int init_sender(){
     senderInfo = malloc(sizeof(sender_info));
     /*init sender structure*/
     senderInfo->timeout = 0.0;
@@ -137,8 +137,10 @@ int int_sender(){
     senderInfo->ssthresh = 3.5*pow(10,6);
     senderInfo->window_packet = NULL;
     senderInfo->window_size = 0;
-    senderInfo->window_base = 0;
-    gettimeofday(&(senderInfo->timer_start), NULL);
-
+    senderInfo->timer_start = NULL;
+    senderInfo->last_ack_seq = -1;
     return 0;
 }
+
+
+
