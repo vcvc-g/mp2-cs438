@@ -43,12 +43,14 @@ FILE* create_file(char *fileName){
 void recv_packet(FILE* dest, recv_info* recvInfo){
     char ACK[3]; // ACK msg for sender
     int recvBytes, sentBytes;
-    int recv_seq = 0; // FOR TESTING
     char recvBuffer[msg_total_size];
+    int recv_seq = 0; // FOR TESTING
+
 
     //ACK[0] = 'A';
     //printf("recv thread OK\n");
     while(1){
+        memset(recvBuffer, 0, msg_total_size); // clean buffer needed 
 	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, &slen)) == -1) {
             perror("receiver recvfrom failed\n");
             exit(1);
@@ -60,14 +62,23 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
             int cur_seq = recvBuffer[1]*255 + recvBuffer[2];
             /*get length*/
             int length = recvBuffer[3]*1400 + recvBuffer[4];
+            ///// FOR TESTING /////
+            length = recvBytes-msg_header_size; //
+            //////////////////////
+            printf("length: %d\n",length);
+            printf("data: %s\n",recvBuffer + msg_header_size);
             handle_data(recvBuffer + msg_header_size, recv_seq, recvInfo, dest, length);
             /*generate ACK*/
             ACK[0] = "A";
             ACK[1] = recvBuffer[1];
             ACK[2] = recvBuffer[2];
-            sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+            sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+            printf("ACK sent: %s\n",ACK);
             
         }
+        ///// FOR TESTING /////
+        break;
+        ///////////////////////
 
         //printf("receive packet OK\n");
         /* Read header and response */

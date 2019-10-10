@@ -47,15 +47,16 @@ void *reliablySend(){
 
         /*take mutex before accessing the resource*/
         pthread_mutex_lock(&sender_mutex);
+        printf("try sending\n");
         /*take the window size and base*/
         volatile int sws = senderInfo->window_size;
         file_data* base = senderInfo->window_packet;
         int i;
         for(i = 0; i < sws; i++){
-            /*case 1: sended and ack just skip*/
+            /* case 1: sended and ack just skip */
             if((base[i].status == 1))
                 continue;
-            /*case 2: not send yet*/
+            /* case 2: not send yet */
             else if((base[i].status == -1)){
                 if(i == 0){
                     sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
@@ -68,7 +69,7 @@ void *reliablySend(){
                 }
             }
 
-            /*case 3:sended not ack yet*/
+            /* case 3:sended not ack yet */
             else if((base[i].status == 0)){
                 if(i == 0){
                     /*check timeout*/
@@ -112,6 +113,7 @@ void *recieve_ack(){
         //     senderInfo->window_size = 5;
         //     printf("change window_size\n");
         //     pthread_mutex_unlock(&sender_mutex);
+        printf("try recving\n");
         if ((byte = recvfrom(s, recvBuf, 1400 , 0, (struct sockaddr*)&si_me, sizeof(si_me))) == -1){
             perror("Recieve Failed");
             exit(1);
@@ -226,26 +228,36 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     } 
   
     /* Send data and receive acknowledgements on s*/
-    read_file(filename, bytesToTransfer);
-    init_sender();
+    // read_file(filename, bytesToTransfer);
+    // init_sender();
 
-    /*send_msg thread for sending packet to reciever*/
-    pthread_t send_msg_tid;
-	pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
+    // /*send_msg thread for sending packet to reciever*/
+    // pthread_t send_msg_tid;
+	// pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
 
-    /*receive_ack thread for recieve ack from reciever*/
-	pthread_t receive_ACK_tid;
-	pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
+    // /*receive_ack thread for recieve ack from reciever*/
+	// pthread_t receive_ACK_tid;
+	// pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
 
-    /*terminate thread*/
-    pthread_join(send_msg_tid, NULL);
-    pthread_join(receive_ACK_tid, NULL);
+    // /*terminate thread*/
+    // pthread_join(send_msg_tid, NULL);
+    // pthread_join(receive_ACK_tid, NULL);
 
     
-	
-    // char* test = "weewew";
-    // sendto(s, test, 20, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-    //printf("-------------------------------------------------------------");
+
+    ///// FOR TESTING /////
+    // Sender cannot recv ACK correctly
+    char* test = "S000522222";
+    char recvBuf[msg_total_size];
+    struct sockaddr_in si_me;
+    int smelen = sizeof(si_me);
+
+    sendto(s, test, 10, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    ///////////////
+    recvfrom(s, recvBuf, 3, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+    ////////////////////
+    printf("\nACK: %s\n",recvBuf);
+    printf("-------------------------------------------------------------");
 
     printf("Closing the socket\n");
     close(s);
