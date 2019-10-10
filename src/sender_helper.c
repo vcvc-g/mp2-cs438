@@ -65,6 +65,8 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         msg[0] = 'S';
         msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
         msg[2] = (i % max_seq) % 255;
+        msg[3] = cur_file_length % 1400;
+        msg[4] = cur_file_length % 255;
         for(j = 0; j < cur_file_length; j++ ){
             msg[j + 3] = *(start_point + j);
             printf("%c", msg[j + 3]);
@@ -73,6 +75,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         file_data_array[i].data = msg;
         file_data_array[i].length = sender_header_size + cur_file_length;
         file_data_array[i].status = -1;
+        file_data_array[i].seq = i % max_seq;
     }
 
      return packet_num;
@@ -100,26 +103,74 @@ float timeout_interval(float sampled_rtt) {
     return estimated_rtt;
 }
 
-int adjust_window_size(){
+int adjust_window_size(int timeout_flag, int duplicate_flag){
     int cur_state = senderInfo->congestion_state;
     int cur_window_size = senderInfo->window_size;
     int cur_ssthresh = senderInfo->ssthresh;
 
     /*case 1: SLOW_START*/
     if (cur_state == SLOW_START) {
-        senderInfo->window_size =  cur_window_size + msg_total_size;
-        if (senderInfo->window_size >= cur_ssthresh)
-             senderInfo->congestion_state =  CONGESTION_AVOID;
+        /*duplicated ack*/
+        if(senderInfo->duplicate_ack == 3){
+            senderInfo->ssthresh = cur_ssthresh/2;
+            senderInfo->window_size = cur_window_size + 3;
+            senderInfo->congestion_state = FAST_RECOVERY;
+        }
+        else if(timeout_flag == 0){
+            /*new ack*/
+            senderInfo->window_size =  cur_window_size + 1;
+            senderInfo->duplicate_ack = 0;
+            /*reach ssthresh*/
+            if (senderInfo->window_size >= cur_ssthresh)
+                senderInfo->congestion_state =  CONGESTION_AVOID;
+        }
+        else if(timeout_flag == 1){
+            /*timeout*/
+            senderInfo->window_size =  1;
+            senderInfo->ssthresh = cur_ssthresh/2;
+            senderInfo->duplicate_ack = 0;
+        }
     }
 
     /*case 2: CONGESTION_AVOID*/
     else if (cur_state == CONGESTION_AVOID) {
-        senderInfo->window_size = senderInfo->window_size + msg_total_size*(msg_total_size/cur_window_size);
+        if(timeout_flag == 1){
+            /*time out*/
+            senderInfo->ssthresh = cur_window_size/2;
+            senderInfo->window_size = 1;
+            senderInfo->duplicate_ack = 0;
+        }
+        else if(senderInfo->duplicate_ack != 3){
+            /*new ack*/
+            senderInfo->ca_extra += 1.0*(1.0/cur_window_size);
+            senderInfo->duplicate_ack = 0;
+            int temp = senderInfo->ca_extra;
+            if(temp >= 1)
+                senderInfo->window_size = cur_window_size + temp;
+        }
+        else if(senderInfo->duplicate_ack == 3){
+            /*duplicate case*/
+            senderInfo->ssthresh = cur_window_size/2;
+            senderInfo->window_size = senderInfo->ssthresh + 3;
+            senderInfo->congestion_state = FAST_RECOVERY;
+        }
     }
 
     /*case 3: FAST_RECOVERY*/
     else if (cur_state == FAST_RECOVERY) {
-        senderInfo->window_size *=2;
+        if(duplicate_flag != 1){
+            senderInfo->window_size = senderInfo->ssthresh;
+            senderInfo->duplicate_ack = 0;
+        }
+        else if(duplicate_flag == 1){
+            senderInfo->window_size =  cur_window_size + 1;
+        }
+        else if(timeout_flag == 1){
+            senderInfo->ssthresh = cur_window_size/2;
+            senderInfo->window_size = 1;
+            senderInfo->duplicate_ack = 0;
+            senderInfo->congestion_state = SLOW_START;
+        }
     }
     
     return 0;
@@ -132,11 +183,13 @@ int init_sender(){
     senderInfo->estimated_rtt = 0.0;
     senderInfo->dev_rtt = 0.0;
     senderInfo->congestion_state = SLOW_START;
-    senderInfo->ssthresh = 3.5*pow(10,6);
+    senderInfo->ssthresh = max_window_size;
     senderInfo->window_packet = NULL;
     senderInfo->window_size = 0;
     senderInfo->timer_start = NULL;
     senderInfo->last_ack_seq = -1;
+    senderInfo->duplicate_ack =  -1;
+    senderInfo->ca_extra = 0.0;
     return 0;
 }
 
