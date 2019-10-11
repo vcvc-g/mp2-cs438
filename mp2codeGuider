@@ -47,6 +47,7 @@ Sender:
     01 2 45
 
 reciever:
+//send ack for every recieve ack;
         recieve_packet:
                 while(1){
                         expect_seq = -1;
@@ -119,8 +120,21 @@ helper function:
 
         3.update windowsize
 
-        4.recieve write file 
+        4.recieve write file
+
+if ((seq_num - (Receiver->NFE % MAX_SEQ_NO) < RWS) || 
+            (seq_num + MAX_SEQ_NO - (Receiver->NFE % MAX_SEQ_NO) < RWS))
   
+When we receive out order seq_num, there are two cases to consider:
+        case 1: the seq_number > expect_seq
+                we just simply use seq_num - expect_seq;
+        case 2: the seq_number < expect_seq
+                we want to wrap around number by adding a MAX_SEQ_NO;
+                then we use seq_num + MAX_SEQ_NO - expect_seq to find the distance
+
+        in both case, if the distance is within widow we buffer the thing.
+
+        
 
 
         

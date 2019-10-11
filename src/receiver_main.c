@@ -17,7 +17,6 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <sys/time.h>
-
 #include "receiver_helper.h"
 
 
@@ -32,30 +31,56 @@ void diep(char *s) {
     exit(1);
 }
 
-void create_file(char *fileName){
-
-	fPtr = fopen("output", "wb"); //FILE NAME OUTPUT FOR TESTING
+FILE* create_file(char *fileName){
+    FILE* fPtr = fopen(fileName, "wb"); //FILE NAME OUTPUT FOR TESTING
 	if (!fPtr )
 		printf("create file failed");
+    
 	printf("file create OK\n");
-
+    return fPtr;
 }
 
-void *recv_packet(){
-    char ACK[msg_total_size]; // ACK msg for sender
+void recv_packet(FILE* dest, recv_info* recvInfo){
+    char ACK[3]; // ACK msg for sender
     int recvBytes, sentBytes;
+    char recvBuffer[msg_total_size];
     int recv_seq = 0; // FOR TESTING
 
-    ACK[0] = 'A';
-    printf("recv thread OK\n");
 
+    //ACK[0] = 'A';
+    //printf("recv thread OK\n");
     while(1){
-        char recvBuffer[msg_total_size];
+        memset(recvBuffer, 0, msg_total_size); // clean buffer needed 
 	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, &slen)) == -1) {
             perror("receiver recvfrom failed\n");
             exit(1);
         }
-        printf("receive packet OK\n");
+
+        /*check if its data packet*/
+        if(recvBuffer[0] == 'S'){
+            /*get sequnce number*/
+            int cur_seq = recvBuffer[1]*255 + recvBuffer[2];
+            /*get length*/
+            int length = recvBuffer[3]*1400 + recvBuffer[4];
+            ///// FOR TESTING /////
+            length = recvBytes-msg_header_size; //
+            //////////////////////
+            printf("length: %d\n",length);
+            printf("data: %s\n",recvBuffer + msg_header_size);
+            handle_data(recvBuffer + msg_header_size, recv_seq, recvInfo, dest, length);
+            /*generate ACK*/
+            ACK[0] = "A";
+            ACK[1] = recvBuffer[1];
+            ACK[2] = recvBuffer[2];
+            sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+            printf("ACK sent: %s\n",ACK);
+            
+        }
+        ///// FOR TESTING /////
+        break;
+        ///////////////////////
+
+        //printf("receive packet OK\n");
         /* Read header and response */
         // if((SYNACK(seq=y, ACKnum=x+1))&(recvInfo->state == SYN_SENT)){
         //     sendto(ACK(ACKnum=y+1));
@@ -64,11 +89,11 @@ void *recv_packet(){
 
         // if(recvInfo->state == ESTAB){
             // int recv_seq = recvBuffer[1]*255 + recvBuffer[2];
-        handle_packet(recvBuffer, recv_seq);
-        printf("handle msg packet OK\n\n\n");
-        // sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+        /*generate ACK*/
+
+        //printf("handle msg packet OK\n\n\n");
+
         // printf("send ACK packet OK\n");
-        recv_seq ++; // FOR TESTING
         // }
 
         // else if(){
@@ -102,20 +127,25 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 
 	/* Create recv_output file */
-    create_file(destinationFile);
+    FILE* dest = create_file(destinationFile);
+    /*init reciever*/
+    recv_info* recvInfo = int_receiver();
+    /*start recieve data*/
+    recv_packet(dest, recvInfo);
 
-    int_receiver();
+
+    
 	/* Now receive data and send acknowledgements */   
-    pthread_t recv_tid;
-    pthread_create(&recv_tid, 0, recv_packet, (void *)0);
-    pthread_join(recv_tid, NULL);
-    printf("Thread finished\n");
+    //pthread_t recv_tid;
+    //pthread_create(&recv_tid, 0, recv_packet, (void *)0);
+    //pthread_join(recv_tid, NULL);
+    //printf("Thread finished\n");
     // pthread_join(time_tid, NULL);
 
 
 
     close(s);
-    close(fPtr);
+    close(dest);
 	printf("%s received.", destinationFile);
     return;
 }
