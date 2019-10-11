@@ -50,6 +50,15 @@ enum congestion_state {
     FAST_RECOVERY,  
 };
 
+enum handshake_state {
+    LISTEN,
+    SYNRCVD,
+    ESTAB,
+    CLOSE_WAIT,
+    LAST_ACK,
+    CLOSED  
+};
+
 
 
 sender_info* senderInfo;

@@ -23,7 +23,8 @@
 
 
 struct sockaddr_in si_me, si_other;
-int s, slen;
+int s ;
+socklen_t slen;
 //static int fptr;
 
 void diep(char *s) {
@@ -63,16 +64,18 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
             /*get length*/
             int length = recvBuffer[3]*1400 + recvBuffer[4];
             ///// FOR TESTING /////
-            length = recvBytes-msg_header_size; //
+            length = recvBytes - msg_header_size; //
             //////////////////////
+            printf("recieve bytes : %d\n", recvBytes);
             printf("length: %d\n",length);
             printf("data: %s\n",recvBuffer + msg_header_size);
-            handle_data(recvBuffer + msg_header_size, recv_seq, recvInfo, dest, length);
+            handle_data(recvBuffer + msg_header_size, cur_seq, recvInfo, dest, length);
             /*generate ACK*/
-            ACK[0] = "A";
+            ACK[0] = 'A';
             ACK[1] = recvBuffer[1];
             ACK[2] = recvBuffer[2];
-            sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+            sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
+            printf("sendto finshed\n");
             
         }
 
@@ -141,7 +144,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 
     close(s);
-    close(dest);
+    fclose(dest);
 	printf("%s received.", destinationFile);
     return;
 }

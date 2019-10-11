@@ -20,7 +20,7 @@ void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int 
     int expected_seq = recvInfo->next_expected;
     /*check if in the window*/
     /*recv_----->720, expected---->720*/
-    if((((0 < (recv_seq - expected_seq)) && (recv_seq - expected_seq)) < RWS) ||
+    if(((0 < (recv_seq - expected_seq)) && ((recv_seq - expected_seq) < RWS)) ||
             (recv_seq + MAX_SEQ_NUM - expected_seq < RWS)){
         int window_idx = expected_seq % RWS;
         /*check duplicate*/
