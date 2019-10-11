@@ -54,10 +54,10 @@ void *reliablySend(){
         int i;
         for(i = 0; i < sws; i++){
             /* case 1: sended and ack just skip */
-            if((base[i].status == 1))
+            if(base[i].status == 1)
                 continue;
             /* case 2: not send yet */
-            else if((base[i].status == -1)){
+            else if(base[i].status == -1){
                 if(i == 0){
                     sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                     gettimeofday(senderInfo->timer_start, NULL);
@@ -70,7 +70,7 @@ void *reliablySend(){
             }
 
             /* case 3:sended not ack yet */
-            else if((base[i].status == 0)){
+            else if(base[i].status == 0){
                 if(i == 0){
                     /*check timeout*/
                     gettimeofday(senderInfo->timer_start, NULL);
@@ -103,6 +103,7 @@ void *recieve_ack(){
     struct sockaddr_in si_me;
     int cur_seq;
     struct timeval timer_now, timer_diff;
+    socklen_t slen;
     while(1){
         // pthread_mutex_lock(&sender_mutex);
         //     if(senderInfo->window_size == 5){
@@ -114,7 +115,7 @@ void *recieve_ack(){
         //     printf("change window_size\n");
         //     pthread_mutex_unlock(&sender_mutex);
         printf("try recving\n");
-        if ((byte = recvfrom(s, recvBuf, 1400 , 0, (struct sockaddr*)&si_me, sizeof(si_me))) == -1){
+        if ((byte = recvfrom(s, recvBuf, 1400 , 0, (struct sockaddr*)&si_me, &slen) == -1)){
             perror("Recieve Failed");
             exit(1);
         }
@@ -250,11 +251,11 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     char* test = "S000522222";
     char recvBuf[msg_total_size];
     struct sockaddr_in si_me;
-    int smelen = sizeof(si_me);
+    socklen_t slen = 
 
     sendto(s, test, 10, 0, (struct sockaddr*)&si_other, sizeof(si_other));
     ///////////////
-    recvfrom(s, recvBuf, 3, 0, (struct sockaddr*)&si_me, sizeof(si_me));
+    recvfrom(s, recvBuf, 3, 0, (struct sockaddr*)&si_me, &slen);
     ////////////////////
     printf("\nACK: %s\n",recvBuf);
     printf("-------------------------------------------------------------");
