@@ -6,7 +6,11 @@ LINKLIBS = -lpthread
 
 #The components of each program. When you create a src/foo.c source file, add obj/foo.o here, separated
 #by a space (e.g. SOMEOBJECTS = obj/foo.o obj/bar.o obj/baz.o).
+<<<<<<< HEAD
 SERVEROBJECTS = obj/receiver_main.o
+=======
+SERVEROBJECTS = obj/receiver_main.o obj/receiver_helper.o
+>>>>>>> qichao
 CLIENTOBJECTS = obj/sender_main.o obj/sender_helper.o
 
 #Every rule listed here as .PHONY is "phony": when you say you want that rule satisfied,
