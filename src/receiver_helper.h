@@ -43,11 +43,7 @@ enum recv_state {
 //recv_info *recvInfo;
 //FILE *fPtr;
 
-<<<<<<< HEAD
 void handle_data(char *packet, int recv_seq, recv_info* recvInfo, FILE* dest, int length);
-=======
-void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int length);
->>>>>>> qichao
 void recv_packet(FILE* dest, recv_info* recvInfo);
 recv_info* int_receiver();
 
