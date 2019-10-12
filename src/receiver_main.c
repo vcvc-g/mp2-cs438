@@ -46,10 +46,26 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
     int recvBytes, sentBytes;
     char recvBuffer[msg_total_size];
     int recv_seq = 0; // FOR TESTING
-
-
-    //ACK[0] = 'A';
-    //printf("recv thread OK\n");
+    /************************************hand shake start*********************************************/
+    /*check if reciever in LISTEN STATE*/
+    while(1){
+        if(recvInfo->handshake_state == LISTEN){
+            /*Wait for the SYN from Sender*/
+            if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, &slen)) == -1) {
+            perror("receiver recvfrom failed\n");
+            exit(1);
+            }
+            if(recvBuffer[0] == 'S'){
+                 /*generate ACK*/
+                ACK[0] = 'S';
+                ACK[1] = 'S';
+                ACK[2] = 'S';
+                sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
+                recvInfo->handshake_state =  SYNSENT;
+                break;
+            }
+        }
+    }
     while(1){
         memset(recvBuffer, 0, msg_total_size); // clean buffer needed 
 	    if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, &slen)) == -1) {
@@ -58,7 +74,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
         }
 
         /*check if its data packet*/
-        if(recvBuffer[0] == 'S'){
+        if(recvBuffer[0] == 'M'){
             /*get sequnce number*/
             int cur_seq = recvBuffer[1]*255 + recvBuffer[2];
             /*get length*/
@@ -78,6 +94,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
             printf("sendto finshed\n");
             
         }
+
 
         //printf("receive packet OK\n");
         /* Read header and response */
@@ -123,12 +140,13 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     printf("Now binding\n");
     if (bind(s, (struct sockaddr*) &si_me, sizeof (si_me)) == -1)
         diep("bind");
-
-
+ 
 	/* Create recv_output file */
     FILE* dest = create_file(destinationFile);
     /*init reciever*/
     recv_info* recvInfo = int_receiver();
+    /*receieve enter LISTEN state*/
+    recvInfo->handshake_state  = LISTEN;
     /*start recieve data*/
     recv_packet(dest, recvInfo);
 

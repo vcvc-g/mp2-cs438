@@ -54,6 +54,7 @@ recv_info* int_receiver(){
     recvInfo->state = CLOSED; // FOR TESTING
     recvInfo->last_ack = -1;
     recvInfo->next_expected = 0;
+    recvInfo->handshake_state  = -1;
     memset(recvInfo->recv_window, 0, RWS);
     printf("receiver init OK\n");
 

@@ -45,8 +45,35 @@ void *reliablySend(){
         //     }
         //     pthread_mutex_unlock(&sender_mutex);
 
-        /*take mutex before accessing the resource*/
+        /*grap mutex lock*/ 
         pthread_mutex_lock(&sender_mutex);
+        /*take mutex before accessing the resource*/
+        if(senderInfo->handshake_state == LISTEN){
+            sendto(s, "SSS", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+            /*change state to SYNSENT*/
+            senderInfo->handshake_state = SYNSENT;
+            /*start timer*/
+            gettimeofday(senderInfo->timer_start, NULL);
+            /*release lock*/
+            pthread_mutex_unlock(&sender_mutex);
+            continue;
+        }
+        else if(senderInfo->handshake_state == SYNSENT){
+            /*check timeout*/
+            gettimeofday(timer_now, NULL);
+            timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+            float sample_rtt = timer_diff.tv_usec / million;
+            if(sample_rtt <= senderInfo->timeout){
+                pthread_mutex_unlock(&sender_mutex);
+                continue;
+            }
+            else if{
+                /*reset the state to listen resent the SYN*/
+                senderInfo->handshake_state = LISTEN;
+                pthread_mutex_unlock(&sender_mutex);
+                continue;
+            }
+        }
         //printf("try sending\n");
         /*take the window size and base*/
         volatile int sws = senderInfo->window_size;
@@ -60,7 +87,6 @@ void *reliablySend(){
             /* case 2: not send yet */
             else if(base[i].status == -1){
                 if(i == 0){
-                    printf("keep sending\n");
                     sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                     gettimeofday(senderInfo->timer_start, NULL);
                     base[0].status = 0;
@@ -116,17 +142,47 @@ void *recieve_ack(){
         //     senderInfo->window_size = 5;
         //     printf("change window_size\n");
         //     pthread_mutex_unlock(&sender_mutex);
-        printf("try recving\n");
+        //      ("try recving\n");
+
+        /*waiting SYN from receiver*/
         if ((byte = recvfrom(s, recvBuf, 1400 , 0, (struct sockaddr*)&si_me, &slen) == -1)){
-            perror("Recieve Failed");
-            exit(1);
+                perror("Recieve Failed");
+                exit(1);
+            }
         }
+        
+        /*grap the lock*/
+        pthread_mutex_lock(&sender_mutex);
+        /*case reccieve SYN from reciever*/
+        if(recvBuf[0] == 'S'){
+            gettimeofday(&timer_now, NULL);
+            /*case when if sender just timeout but receive*/
+            if(senderInfo->handshake_state != SYNSENT){
+                pthread_mutex_unlock(&sender_mutex);
+                continue;
+            }
+
+            /*enter ESTAB state and calcualte the timeout value*/
+            timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+            float sample_rtt = timer_diff.tv_usec / million;
+            senderInfo->timeout = timeout_interval(sample_rtt);
+            senderInfo->handshake_state = ESTAB;
+
+            /*prepare to send the first byte*/
+            senderInfo->window_size = 1;
+            senderInfo->window_packet = file_data_array;
+
+            /*release mutex lock*/
+            pthread_mutex_unlock(&sender_mutex);
+            continue;
+        }
+
         /*case recieve an ack*/
         if(recvBuf[0] == 'A'){
             /*calculate the new timeout interval*/
             gettimeofday(&timer_now, NULL);
             /*grab the lock*/
-            pthread_mutex_unlock(&sender_mutex);
+            pthread_mutex_lock(&sender_mutex);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
             float sample_rtt = timer_diff.tv_usec / million;
             senderInfo->timeout = timeout_interval(sample_rtt);
@@ -233,7 +289,8 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     /* Send data and receive acknowledgements on s*/
     read_file(filename, bytesToTransfer);
     init_sender();
-
+    /*sender enter LISTEN state*/
+    senderInfo->handshake_state = LISTEN;
     /*send_msg thread for sending packet to reciever*/
     pthread_t send_msg_tid;
 	pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
