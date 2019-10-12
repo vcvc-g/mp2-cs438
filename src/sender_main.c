@@ -28,6 +28,8 @@ void *recieve_ack();
 
 void *reliablySend();
 
+void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer);
+
 void diep(char *s) {
     perror(s);
     exit(1);
@@ -46,10 +48,17 @@ void *reliablySend(){
         //     pthread_mutex_unlock(&sender_mutex);
 
         /*grap mutex lock*/ 
+        
         pthread_mutex_lock(&sender_mutex);
         /*take mutex before accessing the resource*/
-        if(senderInfo->handshake_state == LISTEN){
+        volatile int state = senderInfo->handshake_state;
+        printf("inside thread %d", state);
+        sleep(5);
+        //printf("%d",  state);
+        if(state == LISTEN){
+            printf("d/n");
             sendto(s, "SSS", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+            printf("ddd");
             /*change state to SYNSENT*/
             senderInfo->handshake_state = SYNSENT;
             /*start timer*/
@@ -62,66 +71,87 @@ void *reliablySend(){
             /*check timeout*/
             gettimeofday(&timer_now, NULL);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec / million;
+            printf("time out %f \n", senderInfo->timeout);
+            float sample_rtt = timer_diff.tv_usec * million;
             if(sample_rtt <= senderInfo->timeout){
+                printf("rtt: %f", sample_rtt);
                 pthread_mutex_unlock(&sender_mutex);
+                printf("waiting\n");
                 continue;
             }
-            else {
+            else{
                 /*reset the state to listen resent the SYN*/
                 senderInfo->handshake_state = LISTEN;
                 pthread_mutex_unlock(&sender_mutex);
+                printf("timeoun");
                 continue;
             }
         }
-        //printf("try sending\n");
-        /*take the window size and base*/
-        volatile int sws = senderInfo->window_size;
-        file_data* base = senderInfo->window_packet;
-        int i;
-        printf("%d\n", sws);
-        for(i = 0; i < sws; i++){
-            /* case 1: sended and ack just skip */
-            if(base[i].status == 1)
-                continue;
-            /* case 2: not send yet */
-            else if(base[i].status == -1){
-                if(i == 0){
-                    sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-                    gettimeofday(senderInfo->timer_start, NULL);
-                    base[0].status = 0;
-                }
-                else{
-                    sendto(s, base[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-                    base[i].status = 0;
-                }
-            }
+    //     else if(senderInfo->handshake_state == CLOSE_WAIT){
+    //         gettimeofday(&timer_now, NULL);
+    //         timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+    //         float sample_rtt = timer_diff.tv_usec / million;
+    //         if(sample_rtt <= senderInfo->timeout){
+    //             pthread_mutex_unlock(&sender_mutex);
+    //             continue;
+    //         }
+    //         else{
+    //             sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    //             gettimeofday(senderInfo->timer_start, NULL);
+    //             pthread_mutex_unlock(&sender_mutex);
+    //             continue;
+    //         }
+    //     }
+    //     else if(senderInfo->handshake_state == CLOSED)
+    //         pthread_exit(0);
+    //     //printf("try sending\n");
+    //     /*take the window size and base*/
+    //     volatile int sws = senderInfo->window_size;
+    //     file_data* base = senderInfo->window_packet;
+    //     int i;
+    //     //printf("%d\n", sws);
+    //     for(i = 0; i < sws; i++){
+    //         /* case 1: sended and ack just skip */
+    //         if(base[i].status == 1)
+    //             continue;
+    //         /* case 2: not send yet */
+    //         else if(base[i].status == -1){
+    //             if(i == 0){
+    //                 sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    //                 gettimeofday(senderInfo->timer_start, NULL);
+    //                 base[0].status = 0;
+    //             }
+    //             else{
+    //                 sendto(s, base[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    //                 base[i].status = 0;
+    //             }
+    //         }
 
-            /* case 3:sended not ack yet */
-            else if(base[i].status == 0){
-                if(i == 0){
-                    /*check timeout*/
-                    gettimeofday(senderInfo->timer_start, NULL);
-                    timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-                    float sample_rtt = timer_diff.tv_usec / million;
-                    if(sample_rtt > senderInfo->timeout){
-                        adjust_window_size(1, 0);
-                        /*reset index to resend*/
-                        base[i].status = -1;
-                        i = i - 1;
-                        continue;
-                    }
+    //         /* case 3:sended not ack yet */
+    //         else if(base[i].status == 0){
+    //             if(i == 0){
+    //                 /*check timeout*/
+    //                 gettimeofday(senderInfo->timer_start, NULL);
+    //                 timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+    //                 float sample_rtt = timer_diff.tv_usec / million;
+    //                 if(sample_rtt > senderInfo->timeout){
+    //                     adjust_window_size(1, 0);
+    //                     /*reset index to resend*/
+    //                     base[i].status = -1;
+    //                     i = i - 1;
+    //                     continue;
+    //                 }
                     
-                }
-                else
-                    continue;
-            }
+    //             }
+    //             else
+    //                 continue;
+    //         }
             
-        }
-        /*release lack*/
+    //     }
+         /*release lack*/
         pthread_mutex_unlock(&sender_mutex);
     }
-    
+    pthread_mutex_unlock(&sender_mutex);
     return NULL;
 }
 
@@ -140,14 +170,18 @@ void *recieve_ack(){
         //         break;
         //     }
         //     senderInfo->window_size = 5;
-        //     printf("change window_size\n");
+             printf("change window_size\n");
+             sleep(5);
         //     pthread_mutex_unlock(&sender_mutex);
         //      ("try recving\n");
 
         /*waiting SYN from receiver*/
-        if ((byte = recvfrom(s, recvBuf, 1400 , 0, (struct sockaddr*)&si_me, &slen) == -1)){
-            perror("Recieve Failed");
-            exit(1);
+        pthread_mutex_lock(&sender_mutex);
+        if ((byte = recvfrom(s, recvBuf, 1400 , MSG_DONTWAIT, (struct sockaddr*)&si_other, &slen) == -1)){
+            //perror("Recieve Failed");
+            //exit(1);
+            pthread_mutex_unlock(&sender_mutex);
+            continue;
             
         }
         
@@ -161,6 +195,7 @@ void *recieve_ack(){
                 pthread_mutex_unlock(&sender_mutex);
                 continue;
             }
+            printf("s??");
 
             /*enter ESTAB state and calcualte the timeout value*/
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
@@ -177,77 +212,124 @@ void *recieve_ack(){
             continue;
         }
 
-        /*case recieve an ack*/
-        if(recvBuf[0] == 'A'){
-            /*calculate the new timeout interval*/
-            gettimeofday(&timer_now, NULL);
-            /*grab the lock*/
-            pthread_mutex_lock(&sender_mutex);
-            timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec / million;
-            senderInfo->timeout = timeout_interval(sample_rtt);
+        // /*grap the lock*/
+        // pthread_mutex_lock(&sender_mutex);
+        // /*case reccieve SYN from reciever*/
+        // if(recvBuf[0] == 'S'){
+        //     gettimeofday(&timer_now, NULL);
+        //     /*case when if sender just timeout but receive*/
+        //     if(senderInfo->handshake_state != SYNSENT){
+        //         pthread_mutex_unlock(&sender_mutex);
+        //         continue;
+        //     }
 
-            /*find the sequence numebr*/
-            cur_seq = recvBuf[1]*255 + recvBuf[2];
-            int expected_seq = (senderInfo->window_packet)->seq;
-            /*first ack*/
-            if(senderInfo->last_ack_seq == -1)
-                senderInfo->last_ack_seq = cur_seq;
+    //         /*enter ESTAB state and calcualte the timeout value*/
+    //         timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+    //         float sample_rtt = timer_diff.tv_usec / million;
+    //         senderInfo->timeout = timeout_interval(sample_rtt);
+    //         senderInfo->handshake_state = ESTAB;
+        
+    //         /*prepare to send the first byte*/
+    //         senderInfo->window_size = 1;
+    //         senderInfo->window_packet = file_data_array;
+
+    //         /*release mutex lock*/
+    //         pthread_mutex_unlock(&sender_mutex);
+    //         continue;
+    //     }
+    //     if (senderInfo->handshake_state == CLOSE_WAIT){
+    //         if(recvBuf[0] == 'F'){
+    //             senderInfo->handshake_state = CLOSED;
+    //             pthread_mutex_unlock(&sender_mutex);
+    //             pthread_exit(0);
+    //         }
+    //     }
+
+    //     /*case recieve an ack*/
+    //     if(recvBuf[0] == 'A'){
+    //         /*calculate the new timeout interval*/
+    //         gettimeofday(&timer_now, NULL);
+    //         /*grab the lock*/
+    //         pthread_mutex_lock(&sender_mutex);
+    //         timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+    //         float sample_rtt = timer_diff.tv_usec / million;
+    //         senderInfo->timeout = timeout_interval(sample_rtt);
+
+    //         /*find the sequence numebr*/
+    //         cur_seq = recvBuf[1]*255 + recvBuf[2];
+    //         int expected_seq = (senderInfo->window_packet)->seq;
+    //         /*first ack*/
+    //         if(senderInfo->last_ack_seq == -1)
+    //             senderInfo->last_ack_seq = cur_seq;
             
-            /*case 1: sequence number match*/
-            if(expected_seq == cur_seq){
-                senderInfo->last_ack_seq = cur_seq;
-                /*find the coresponding packet for this ack*/
-                /*this part can be improved*/            
-                for(i = 0; i < senderInfo->window_size; i++){
-                    if((senderInfo->window_packet + i)->seq == cur_seq)
-                        (senderInfo->window_packet + i)->status = 1;
-                }
-                /*clear duplicate ACK*/
-                senderInfo->duplicate_ack = 0;
-                /*adjust window*/
-                adjust_window_size(0, 0);
-                /*chage window base*/
-                senderInfo->window_packet = senderInfo->window_packet + i + 1;
-                /*release the lock*/
-                pthread_mutex_unlock(&sender_mutex);
-                continue;
-            }
+    //         /*case 1: sequence number match*/
+    //         if(expected_seq == cur_seq){
+    //             senderInfo->last_ack_seq = cur_seq;
+    //             /*find the coresponding packet for this ack*/
+    //             /*this part can be improved*/            
+    //             for(i = 0; i < senderInfo->window_size; i++){
+    //                 if((senderInfo->window_packet + i)->seq == cur_seq)
+    //                     (senderInfo->window_packet + i)->status = 1;
+    //             }
+
+    //             /*check if we reach the end*/
+    //             if((senderInfo->window_packet + i )->number == (senderInfo->packet_number - 1) ){
+    //                 senderInfo->handshake_state = CLOSE_WAIT;
+    //                 sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    //                 gettimeofday(senderInfo->timer_start, NULL);
+    //                 pthread_mutex_unlock(&sender_mutex);
+    //                 continue;
+    //             }
+
+    //             /*clear duplicate ACK*/
+    //             senderInfo->duplicate_ack = 0;
+    //             /*adjust window*/
+    //             adjust_window_size(0, 0);
+    //             /*chage window base*/
+    //             /*reamining packet*/
+    //             int reamining = (senderInfo->packet_number) - (senderInfo->window_packet + i) -> number - 1;
+    //             if(senderInfo->window_size > reamining)
+    //                 senderInfo->window_size = reamining;
+    //             senderInfo->window_packet = senderInfo->window_packet + i + 1;
+    //             /*release the lock*/
+    //             pthread_mutex_unlock(&sender_mutex);
+    //             continue;
+    //         }
             
-            /*case 2: sequence number greater than expected*/
-            if(expected_seq < cur_seq){
-                /*change the status of currect ack*/
-                for(i = 0; i < senderInfo->window_size; i++){
-                    if((senderInfo->window_packet + i)->seq == cur_seq)
-                        (senderInfo->window_packet + i)->status = 1;
-                }
-                /*increment duplicated ack*/
-                if(senderInfo->duplicate_ack != -1)
-                    senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
-                else
-                    senderInfo->duplicate_ack = 1;
-                /*adjust window size*/
-                adjust_window_size(0, 1);
-                /*release the lock*/
-                pthread_mutex_unlock(&sender_mutex);
-                continue;
-            }
+    //         /*case 2: sequence number greater than expected*/
+    //         if(expected_seq < cur_seq){
+    //             /*change the status of currect ack*/
+    //             for(i = 0; i < senderInfo->window_size; i++){
+    //                 if((senderInfo->window_packet + i)->seq == cur_seq)
+    //                     (senderInfo->window_packet + i)->status = 1;
+    //             }
+    //             /*increment duplicated ack*/
+    //             if(senderInfo->duplicate_ack != -1)
+    //                 senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
+    //             else
+    //                 senderInfo->duplicate_ack = 1;
+    //             /*adjust window size*/
+    //             adjust_window_size(0, 1);
+    //             /*release the lock*/
+    //             pthread_mutex_unlock(&sender_mutex);
+    //             continue;
+    //         }
 
              
-            /*case 3: sequence number less than expected*/
-            if(expected_seq > cur_seq){
-                /*increment duplicated ack*/
-                if(senderInfo->duplicate_ack != -1)
-                    senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
-                else
-                    senderInfo->duplicate_ack = 1;
-                /*adjust window size*/
-                adjust_window_size(0, 1);
-                /*release the lock*/
-                pthread_mutex_unlock(&sender_mutex);
-                continue;
-            }
-        }
+    //         /*case 3: sequence number less than expected*/
+    //         if(expected_seq > cur_seq){
+    //             /*increment duplicated ack*/
+    //             if(senderInfo->duplicate_ack != -1)
+    //                 senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
+    //             else
+    //                 senderInfo->duplicate_ack = 1;
+    //             /*adjust window size*/
+    //             adjust_window_size(0, 1);
+    //             /*release the lock*/
+    //             pthread_mutex_unlock(&sender_mutex);
+    //             continue;
+    //         }
+    //     }
         
     }
      return NULL;
@@ -287,32 +369,58 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     } 
   
     /* Send data and receive acknowledgements on s*/
-    read_file(filename, bytesToTransfer);
+    //init_sender();
+    // int number = read_file(filename, bytesToTransfer);
     init_sender();
+    //senderInfo->packet_number = number;
+    printf("%d", senderInfo->handshake_state);
+    
     /*sender enter LISTEN state*/
-    senderInfo->handshake_state = LISTEN;
     /*send_msg thread for sending packet to reciever*/
-    pthread_t send_msg_tid;
-	pthread_create(&send_msg_tid, 0, reliablySend, (void*)0);
+    // pthread_t send_msg_tid;
+	// pthread_create(&send_msg_tid, NULL, reliablySend, (void*)0);
+    // printf("dsddssd");
 
-    /*receive_ack thread for recieve ack from reciever*/
-	pthread_t receive_ACK_tid;
-	pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
+    // /*receive_ack thread for recieve ack from reciever*/
+	// pthread_t receive_ACK_tid;
+	// pthread_create(&receive_ACK_tid, 0, recieve_ack, (void*)0);
 
-    /*terminate thread*/
-    pthread_join(send_msg_tid, NULL);
-    pthread_join(receive_ACK_tid, NULL);
+    // /*terminate thread*/
+    
+    // pthread_join(receive_ACK_tid, NULL);
+    // pthread_join(send_msg_tid, NULL);
 
     
 
     ///// FOR TESTING /////
     // Sender cannot recv ACK correctly
-    //char* test = "S00051111211DFJDKF";
+    char test[][100] =
+        {   "SSS0011111",
+            "M000022222",
+            "M010033333",
+            "M020044444",
+            "FFF0055555",
+            "FFF1166666"
+        };
+    char recvBuf[100];
     //char recvBuf[msg_total_size];
     //struct sockaddr_in si_me;
     //socklen_t slen;
+    test[1][1] = (uint8_t) 0x0;
+    test[1][2] = (uint8_t) 0x0;
 
-    //sendto(s, test, bytesToTransfer, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    test[2][1] = (uint8_t) 0x0;
+    test[2][2] = (uint8_t) 0x1;
+
+    test[3][1] = (uint8_t) 0x0;
+    test[3][2] = (uint8_t) 0x2;
+
+    for (int j = 0; j < 6; j++){
+
+        sendto(s, test[j], bytesToTransfer, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+        // printf("ACK RECEIVED: %s", recvBuf);
+    }
+    
     ///////////////
     //recvfrom(s, recvBuf, 3, 0, (struct sockaddr*)&si_other, &slen);
     ////////////////////
@@ -321,7 +429,7 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
 
     printf("Closing the socket\n");
     close(s);
-     return NULL;
+    return NULL;
 }
 
 

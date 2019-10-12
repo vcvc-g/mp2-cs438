@@ -50,10 +50,32 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
     while(1){
 
         memset(recvBuffer, 0, msg_total_size); // clean buffer needed 
+
+        /* CLOSED WAIT state, check if sender get FINACK */
+        if (recvInfo->handshake_state == CLOSED_WAIT){
+            /*generate ACK*/
+            ACK[0] = 'F';
+            ACK[1] = 'F';
+            ACK[2] = 'F';
+            if ((sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen))==-1){
+                recvInfo->handshake_state = CLOSED;
+                break;
+            }
+            
+            usleep(25*1000); //sleep for 25ms, not spam bandwidth
+            ////////// need a counter, break after count///////////
+            printf("CLOSED_WAIT, TRYING BREAK\n");
+            return;
+            continue;
+        }
+
+        /* ADD TIMER FOR RECVIER, IF TIME OUT TOO MUCH CLOSE??? */
         if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, &slen)) == -1) {
             perror("receiver recv_packet failed\n");
             exit(1);
         }
+        printf("recv type : %s\n",recvBuffer);
+        printf("recv state: %d\n",recvInfo->handshake_state);
 
         /* LISTEN state, synthesis with sender */
         if (recvInfo->handshake_state == LISTEN){
@@ -64,6 +86,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[1] = 'S';
                 ACK[2] = 'S';
                 sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
+                printf("ACK sent in STATE%d: %s\n",recvInfo->handshake_state, ACK);
                 recvInfo->handshake_state = ESTAB;
             }            
         }
@@ -85,46 +108,48 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[1] = 'F';
                 ACK[2] = 'F';
                 sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
+                printf("ACK sent in STATE%d: %s\n",recvInfo->handshake_state, ACK);                
                 continue;
             }
 
             /*check if its data packet*/
             if(recvBuffer[0] == 'M'){
                 /*get sequnce number*/
-                int cur_seq = recvBuffer[1]*255 + recvBuffer[2];
+                int cur_seq = (uint8_t)recvBuffer[1]*255 + (uint8_t)recvBuffer[2];
                 /*get length*/
                 int length = recvBuffer[3]*1400 + recvBuffer[4];
                 ///// FOR TESTING /////
                 length = recvBytes - msg_header_size; //
                 //////////////////////
-                printf("recieve bytes : %d\n", recvBytes);
-                printf("length: %d\n",length);
-                printf("data: %s\n",recvBuffer + msg_header_size);
+                printf("recv_seq: %d\n", cur_seq);
+                printf("recv_msg_length: %d\n", length);
                 handle_data(recvBuffer + msg_header_size, cur_seq, recvInfo, dest, length);
                 /*generate ACK*/
                 ACK[0] = 'A';
                 ACK[1] = recvBuffer[1];
                 ACK[2] = recvBuffer[2];
                 sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
-                printf("sendto finshed\n");
+                printf("ACK sent in STATE%d: %s\n\n",recvInfo->handshake_state, ACK);
                 
             }
         }
 
         /* CLOSED WAIT state, check if sender get FINACK */
-        else if (recvInfo->handshake_state == CLOSED_WAIT){
-            /*generate ACK*/
-            ACK[0] = 'F';
-            ACK[1] = 'F';
-            ACK[2] = 'F';
-            if ((sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen))==-1){
-                recvInfo->handshake_state = CLOSED;
-                break;
-            }
+        // else if (recvInfo->handshake_state == CLOSED_WAIT){
+        //     /*generate ACK*/
+        //     ACK[0] = 'F';
+        //     ACK[1] = 'F';
+        //     ACK[2] = 'F';
+        //     if ((sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen))==-1){
+        //         recvInfo->handshake_state = CLOSED;
+        //         break;
+        //     }
             
-            usleep(25*1000); //sleep for 25ms, not spam bandwidth
-        }
+        //     usleep(25); //sleep for 25ms, not spam bandwidth
+        //     printf("CLOSED_WAIT, TRYING BREAK\n");
+        // }
 
+        //////////SCRATCH//////
         //printf("receive packet OK\n");
         /* Read header and response */
         // if((SYNACK(seq=y, ACKnum=x+1))&(recvInfo->state == SYN_SENT)){
@@ -176,6 +201,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     recv_info* recvInfo = int_receiver();
     /*receieve enter LISTEN state*/
     recvInfo->handshake_state  = LISTEN;
+    // printf("recvINFO\n");
     /*start recieve data*/
     recv_packet(dest, recvInfo);
 
@@ -189,10 +215,10 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     // pthread_join(time_tid, NULL);
 
 
-
+    printf("closing file and socket\n");
     close(s);
     fclose(dest);
-	printf("%s received.", destinationFile);
+	printf("%s received.\n", destinationFile);
     return;
 }
 

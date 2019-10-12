@@ -3,16 +3,18 @@
 #include <sys/types.h>
 #include <math.h>
 #include <sys/time.h>
+#include <string.h>
 
 #define max_window_size 360
 #define msg_body_size 1460
 #define sender_header_size 5
-#define msg_total_size 1463
+#define msg_total_size 1465
 #define max_seq 720
 #define million 1000
 
 typedef struct file_data_struct{
     size_t length;
+    int number;
     int seq;
     char* data;
 
@@ -41,7 +43,8 @@ typedef struct sender_info {
     int last_ack_seq;
     int duplicate_ack;
     float ca_extra;
-    int handshake_state;
+    volatile int handshake_state;
+    int packet_number;
 } sender_info;
 
 
@@ -56,8 +59,7 @@ enum handshake_state {
     SYNSENT,
     ESTAB,
     CLOSE_WAIT,
-    LAST_ACK,
-    CLOSED  
+    CLOSED
 };
 
 
