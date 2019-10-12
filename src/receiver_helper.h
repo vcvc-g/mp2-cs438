@@ -24,6 +24,7 @@ typedef struct receiver_info {
     int recv_window[RWS]; // -1 for not received, 0 for out of order received, 1 for in order ack
     char recv_buffer[RWS][msg_body_size];
     int recv_dataLen[RWS];
+    int  handshake_state;
     struct timeval timer_start;
 
 }recv_info;
@@ -32,18 +33,16 @@ typedef struct receiver_info {
 //012345
 //[012]-> [123]
 enum recv_state {
-    SYN_SENT,
+    LISTEN,
     ESTAB,
-    FIN_WAIT1,
-    FIN_WAIT2,
-    TIME_WAIT,
+    CLOSED_WAIT,
     CLOSED
 };
 
 //recv_info *recvInfo;
 //FILE *fPtr;
 
-void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int length);
+void handle_data(char *packet, int recv_seq, recv_info* recvInfo, FILE* dest, int length);
 void recv_packet(FILE* dest, recv_info* recvInfo);
 recv_info* int_receiver();
 

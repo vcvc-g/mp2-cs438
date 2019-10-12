@@ -62,7 +62,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         char* start_point = file + i*msg_body_size;
         /*create message*/
         char *msg = malloc(cur_file_length + sender_header_size); 
-        msg[0] = 'S';
+        msg[0] = 'M';
         msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
         msg[2] = (i % max_seq) % 255;
         msg[3] = cur_file_length % 1400;
@@ -82,8 +82,6 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
 
 }
 
-
-sender_info* senderInfo;
 
 /* 
 Function timeout_interval(): calculate timeout interval for sending packet;
@@ -181,7 +179,7 @@ int adjust_window_size(int timeout_flag, int duplicate_flag){
 int init_sender(){
     senderInfo = malloc(sizeof(sender_info));
     /*init sender structure*/
-    senderInfo->timeout = 0.0;
+    senderInfo->timeout = 25.0; /*25ms*/
     senderInfo->estimated_rtt = 0.0;
     senderInfo->dev_rtt = 0.0;
     senderInfo->congestion_state = SLOW_START;
@@ -192,6 +190,7 @@ int init_sender(){
     senderInfo->last_ack_seq = -1;
     senderInfo->duplicate_ack =  -1;
     senderInfo->ca_extra = 0.0;
+    senderInfo->handshake_state = -1;
     return 0;
 }
 
