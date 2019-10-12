@@ -53,8 +53,6 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
     char *file = malloc(data_size);
     fread(file, data_size, 1, fd);
     fclose(fd);
-      printf("%s\n", file);
-    printf("=-----------------------------------------------------");
 
     /*construct the file data array*/
     size_t cur_file_length = 0;
@@ -64,30 +62,30 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
             cur_file_length = data_size - i*msg_body_size;
         char* start_point = file + i*msg_body_size;
         /*create message*/
-        printf("cur file length %d \n", cur_file_length);
-        char *msg = malloc(cur_file_length + sender_header_size);
+        printf("cur file length:%d \n", cur_file_length);
+        //char hee[10]
+        size_t total = cur_file_length + 5;
+        char* msg = (char* )malloc(total);
         memset(msg, '\0', cur_file_length + sender_header_size);
-        *(msg + 0) = 'M';
-        //msg[1] = itoa((i % max_seq) / 255); //make sure the number is within one byte
-        //msg[2] = itoa((i % max_seq) % 255);
-        //msg[3] = itoa((cur_file_length % 1400));
-        //msg[4] = itoa(cur_file_length % 255);
-        printf("%c\n", *msg);
+        msg[0] = 'M';
+        msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
+        msg[2] = (i % max_seq) % 255;
+        msg[3] = cur_file_length % 1400;
+        msg[4] = cur_file_length % 255;
         for(j = 0; j < cur_file_length; j++ ){
-            printf("dfgdfgdfgdfgfg");
-            msg[j + 1] = *(start_point + j);
+            msg[j + 5] = *(start_point + j);
+            //printf("%c", msg[j + 5]);
         }
         
-
-        printf("sdsdfdf");
         file_data_array[i].data = msg;
         file_data_array[i].length = sender_header_size + cur_file_length;
         file_data_array[i].status = -1;
         file_data_array[i].seq = i % max_seq;
         file_data_array[i].number = i;
-       // printf("sdsdfdf");
 
     }
+    printf("ds?");
+
     return packet_num;
 
 }
@@ -196,11 +194,12 @@ int init_sender(){
     senderInfo->ssthresh = max_window_size;
     senderInfo->window_packet = NULL;
     senderInfo->window_size = 0;
-    senderInfo->timer_start = NULL;
+    senderInfo->timer_start = (struct timeval*) malloc(sizeof(struct timeval));
     senderInfo->last_ack_seq = -1;
     senderInfo->duplicate_ack =  -1;
     senderInfo->ca_extra = 0.0;
-    senderInfo->handshake_state = -1;
+    /*sender enter LISTEN state*/
+    senderInfo->handshake_state =  LISTEN;
     senderInfo->packet_number = -1;
     return 0;
 }

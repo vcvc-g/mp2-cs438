@@ -43,7 +43,7 @@ typedef struct sender_info {
     int last_ack_seq;
     int duplicate_ack;
     float ca_extra;
-    int handshake_state;
+    volatile int handshake_state;
     int packet_number;
 } sender_info;
 
@@ -59,7 +59,6 @@ enum handshake_state {
     SYNSENT,
     ESTAB,
     CLOSE_WAIT,
-    //LAST_ACK,
     CLOSED
 };
 
