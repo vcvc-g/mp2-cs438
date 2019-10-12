@@ -13,6 +13,7 @@
 
 typedef struct file_data_struct{
     size_t length;
+    int number;
     int seq;
     char* data;
 
@@ -42,6 +43,7 @@ typedef struct sender_info {
     int duplicate_ack;
     float ca_extra;
     int handshake_state;
+    int packet_number;
 } sender_info;
 
 
@@ -56,8 +58,8 @@ enum handshake_state {
     SYNSENT,
     ESTAB,
     CLOSE_WAIT,
-    LAST_ACK,
-    CLOSED  
+    //LAST_ACK,
+    CLOSED
 };
 
 

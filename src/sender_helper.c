@@ -47,7 +47,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
     if(data_size % msg_body_size)
         packet_num = packet_num + 1;
     /*malloc enough space for file_data array*/
-    file_data_array = calloc(packet_num, sizeof(file_data));
+    file_data_array = calloc(packet_num + 1, sizeof(file_data));
 
     char *file = malloc(data_size);
     fread(file, data_size, 1, fd);
@@ -76,9 +76,10 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         file_data_array[i].length = sender_header_size + cur_file_length;
         file_data_array[i].status = -1;
         file_data_array[i].seq = i % max_seq;
-    }
+        file_data_array[i].number = i;
 
-     return packet_num;
+    }
+    return packet_num;
 
 }
 
@@ -191,6 +192,7 @@ int init_sender(){
     senderInfo->duplicate_ack =  -1;
     senderInfo->ca_extra = 0.0;
     senderInfo->handshake_state = -1;
+    senderInfo->packet_number = -1;
     return 0;
 }
 
