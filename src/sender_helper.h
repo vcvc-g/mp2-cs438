@@ -3,11 +3,12 @@
 #include <sys/types.h>
 #include <math.h>
 #include <sys/time.h>
+#include <string.h>
 
 #define max_window_size 360
 #define msg_body_size 1460
 #define sender_header_size 5
-#define msg_total_size 1463
+#define msg_total_size 1465
 #define max_seq 720
 #define million 1000
 

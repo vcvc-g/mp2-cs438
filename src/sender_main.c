@@ -74,7 +74,7 @@ void *reliablySend(){
                 continue;
             }
         }
-        else if((senderInfo->handshake_state == CLOSE_WAIT)){
+        else if(senderInfo->handshake_state == CLOSE_WAIT){
             gettimeofday(&timer_now, NULL);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
             float sample_rtt = timer_diff.tv_usec / million;
@@ -84,12 +84,12 @@ void *reliablySend(){
             }
             else{
                 sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-                gettimeofday(&senderInfo->timer_start, NULL);
+                gettimeofday(senderInfo->timer_start, NULL);
                 pthread_mutex_unlock(&sender_mutex);
                 continue;
             }
         }
-        else if((senderInfo->handshake_state == CLOSED))
+        else if(senderInfo->handshake_state == CLOSED)
             pthread_exit(0);
         //printf("try sending\n");
         /*take the window size and base*/
@@ -219,11 +219,12 @@ void *recieve_ack(){
             pthread_mutex_unlock(&sender_mutex);
             continue;
         }
-        if (senderInfo->handshake_state = CLOSE_WAIT);
+        if (senderInfo->handshake_state == CLOSE_WAIT){
             if(recvBuf[0] == 'F'){
                 senderInfo->handshake_state = CLOSED;
                 pthread_mutex_unlock(&sender_mutex);
                 pthread_exit(0);
+            }
         }
 
         /*case recieve an ack*/
@@ -257,7 +258,7 @@ void *recieve_ack(){
                 if((senderInfo->window_packet + i )->number == (senderInfo->packet_number - 1) ){
                     senderInfo->handshake_state = CLOSE_WAIT;
                     sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-                    gettimeofday(&senderInfo->timer_start, NULL);
+                    gettimeofday(senderInfo->timer_start, NULL);
                     pthread_mutex_unlock(&sender_mutex);
                     continue;
                 }
@@ -351,8 +352,10 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
   
     /* Send data and receive acknowledgements on s*/
     int number = read_file(filename, bytesToTransfer);
+    printf("%d", number);
     init_sender();
     senderInfo->packet_number = number;
+    printf("%d", number);
     /*sender enter LISTEN state*/
     senderInfo->handshake_state = LISTEN;
     /*send_msg thread for sending packet to reciever*/
