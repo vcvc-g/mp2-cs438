@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <stdint.h>
+
 
 #define msg_header_size 5
 #define msg_body_size 1460
