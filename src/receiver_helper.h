@@ -34,11 +34,8 @@ typedef struct receiver_info {
 //[012]-> [123]
 enum recv_state {
     LISTEN,
-    SYNRCVD,
     ESTAB,
-    FIN_WAIT1,
-    FIN_WAIT2,
-    TIME_WAIT,
+    CLOSED_WAIT,
     CLOSED
 };
 

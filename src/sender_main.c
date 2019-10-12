@@ -96,7 +96,7 @@ void *reliablySend(){
         volatile int sws = senderInfo->window_size;
         file_data* base = senderInfo->window_packet;
         int i;
-        printf("%d\n", sws);
+        //printf("%d\n", sws);
         for(i = 0; i < sws; i++){
             /* case 1: sended and ack just skip */
             if(base[i].status == 1)
@@ -165,6 +165,33 @@ void *recieve_ack(){
         if ((byte = recvfrom(s, recvBuf, 1400 , 0, (struct sockaddr*)&si_me, &slen) == -1)){
             perror("Recieve Failed");
             exit(1);
+            
+        }
+        
+        /*grap the lock*/
+        pthread_mutex_lock(&sender_mutex);
+        /*case reccieve SYN from reciever*/
+        if(recvBuf[0] == 'S'){
+            gettimeofday(&timer_now, NULL);
+            /*case when if sender just timeout but receive*/
+            if(senderInfo->handshake_state != SYNSENT){
+                pthread_mutex_unlock(&sender_mutex);
+                continue;
+            }
+
+            /*enter ESTAB state and calcualte the timeout value*/
+            timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+            float sample_rtt = timer_diff.tv_usec / million;
+            senderInfo->timeout = timeout_interval(sample_rtt);
+            senderInfo->handshake_state = ESTAB;
+
+            /*prepare to send the first byte*/
+            senderInfo->window_size = 1;
+            senderInfo->window_packet = file_data_array;
+
+            /*release mutex lock*/
+            pthread_mutex_unlock(&sender_mutex);
+            continue;
         }
 
         /*grap the lock*/
