@@ -50,7 +50,8 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
 
     while(1){
 
-        memset(recvBuffer, 'L', msg_total_size); // clean buffer needed 
+        memset(recvBuffer, 'L', msg_total_size); // clean buffer needed
+        //printf("start buffer: %s\n", recvBuffer);
         //sleep(1);
         //printf("recv is running now\n");
          /* CLOSED WAIT state, check if sender get FINACK */
@@ -73,7 +74,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
             //exit(1);
             continue;
         }
-        
+           //printf("after buffer: %s\n", recvBuffer); 
         //if(recvBytes != 0)
             //printf("message: %d\n", recvBytes );
 
@@ -86,7 +87,8 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[1] = 'S';
                 ACK[2] = 'S';
                 sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
-                printf("sending SYN message\n");
+                if(sentBytes)
+                    printf("sending SYN message\n");
                 recvInfo->handshake_state = ESTAB;
             }
         }
@@ -95,6 +97,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
         /* ESTAB state, start writing file */
         else if (recvInfo->handshake_state == ESTAB) {
             /*check if its SYN */
+            printf("after buffer: %s\n", recvBuffer); 
             if (recvBuffer[0] == 'S'){
                 printf("go back to listen");
                 recvInfo->handshake_state = LISTEN;
@@ -170,7 +173,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     
     slen = sizeof (si_other);
 
-
+ printf("???????????????");
     if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
         diep("socket");
 
@@ -192,18 +195,27 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     /*receieve enter LISTEN state*/
     recvInfo->handshake_state  = LISTEN;
     /*start recieve data*/
-    recv_packet(dest, recvInfo);
+    //recv_packet(dest, recvInfo);
     int recvBytes  = 0;
-    char recvBuffer[200];
+    char recvBuffer[3];
    // printf("this code has problem");
-    // if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , MSG_DONTWAIT, (struct sockaddr*)&si_other, &slen)) == -1) {
-    //     printf("continue with no problem");
+   //while(1){
+        if ((recvBytes = recvfrom(s, recvBuffer, 3, 0, (struct sockaddr*)&si_other, &slen)) == -1){
+            printf("sd?\n");
+            //continue;
+        }
+        printf("1111111111111111");
+        //break;
+    //}
         
     //     //perror("receiver recv_packet failed\n");
     //     //exit(1);
     // }
-
-
+    while(1){
+        printf("????????????????????/");
+        sleep(1);
+        int sentBytes = sendto(s, "SSS", 3, 0, (struct sockaddr*)&si_other, slen);
+    }
     
 	/* Now receive data and send acknowledgements */   
     //pthread_t recv_tid;
@@ -211,7 +223,6 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     //pthread_join(recv_tid, NULL);
     //printf("Thread finished\n");
     // pthread_join(time_tid, NULL);
-
 
 
     close(s);
