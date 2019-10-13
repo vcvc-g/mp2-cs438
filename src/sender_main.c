@@ -37,10 +37,15 @@ void diep(char *s) {
 
 void reliablySend(){
     struct timeval timer_now, timer_diff;
+    char ACK[msg_total_size];
+    memset(ACK, 'K', msg_total_size);
     while(1){
         volatile int state = senderInfo->handshake_state;
         if(state == LISTEN){
-            sendto(s, "SSS", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+            ACK[0] = 'S';
+            ACK[1] = 'S';
+            ACK[2] = 'S';
+            sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
             printf("sending SYN to reciever\n");
             /*change state to SYNSENT*/
             senderInfo->handshake_state = SYNSENT;
@@ -50,12 +55,14 @@ void reliablySend(){
         else if(senderInfo->handshake_state == SYNSENT){
             /*check timeout*/
             gettimeofday(&timer_now, NULL);
-            printf("Waiting SYN \n");
+            //printf("Waiting SYN \n");
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
             //printf("time out %f \n", senderInfo->timeout);
+ 
             double sample_rtt = timer_diff.tv_usec * million;
-            if(sample_rtt > senderInfo->timeout)
-                senderInfo->handshake_state = LISTEN;
+            //printf("rtt %f \n", sample_rtt );
+            //if(sample_rtt > senderInfo->timeout)
+                //senderInfo->handshake_state = LISTEN;
         }
         else if(senderInfo->handshake_state == CLOSE_WAIT){
             printf("there you go ending state");
@@ -63,23 +70,23 @@ void reliablySend(){
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
             float sample_rtt = timer_diff.tv_usec * million;
             if(sample_rtt > senderInfo->timeout){
-                sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                sendto(s, "FFF", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                 gettimeofday(senderInfo->timer_start, NULL);
             }
         }
         else if(senderInfo->handshake_state == CLOSED)
-            pthread_exit(0);
+            return;
         else if(senderInfo->handshake_state == ESTAB){
             /*take the window size and base*/
-            volatile int sws = senderInfo->window_size;
+            int sws = senderInfo->window_size;
             file_data* base = senderInfo->window_packet;
             int i;
-            //printf("%d\n", sws);
+            if (sws == 1)
+                printf("%d\n", sws);
             for(i = 0; i < sws; i++){
                 /* case 1: sended and ack just skip */
                 if(base[i].status == 1){
-                    //printf("acked\n");
-                    continue;
+                    //do nothing
                 }
                 /* case 2: not send yet */
                 else if(base[i].status == -1){
@@ -101,14 +108,13 @@ void reliablySend(){
                         timersub(&timer_now, senderInfo->timer_start, &timer_diff);
                         float sample_rtt = timer_diff.tv_usec * million;
                         //printf("checking ack");
-                        if(sample_rtt > senderInfo->timeout){
-                            adjust_window_size(1, 0);
+                        //if(sample_rtt > senderInfo->timeout){
+                            //adjust_window_size(1, 0);
                             /*reset index to resend*/
                             //printf("try to resend message rtt: %f timeout: %f\n",sample_rtt, senderInfo->timeout);
-                            base[i].status = -1;
-                            i = i - 1;
-                            continue;
-                        }
+                            //base[i].status = -1;
+                            //i = i - 1;
+                        //}
                     }
                 }
             }
@@ -118,17 +124,16 @@ void reliablySend(){
 
         /******************************recieve_ack*********************************************************/
         int byte, i;
-        char recvBuf[100];
+        char recvBuf[msg_total_size];
         /*waiting SYN from receiver*/
         memset(recvBuf, 'L', 100); // clean buffer needed 
         //printf("recving ack running\n");
-        if ((byte = recvfrom(s, recvBuf, 100 , MSG_DONTWAIT, (struct sockaddr*)&si_other, slen) == -1)){
+        if ((byte = recvfrom(s, recvBuf, msg_total_size, MSG_DONTWAIT, (struct sockaddr*)&si_other, &slen) == -1)){
             /*no recieve anything*/
-            continue;
             
-
+            //printf("sddddddddddddddddddddddddddddddddddddddddddd");
+            
         }
-        printf("sddddddddddddddddddddddddddddddddddddddddddd");
 
         if (senderInfo->handshake_state == CLOSE_WAIT){
             if(recvBuf[0] == 'F'){
@@ -192,7 +197,7 @@ void reliablySend(){
                 /*check if we reach the end*/
                 if((senderInfo->window_packet + i )->number == (senderInfo->packet_number - 1)){     
                     senderInfo->handshake_state = CLOSE_WAIT;
-                    sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                    sendto(s, "FFF", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                     gettimeofday(senderInfo->timer_start, NULL);
                     continue;
                 }
@@ -454,7 +459,7 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     /*sender enter LISTEN state*/
     senderInfo->handshake_state = LISTEN;
 
-    //reliablySend();
+    reliablySend();
 
     /*
     /*send_msg thread for sending packet to reciever*/
@@ -474,17 +479,14 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     ///// FOR TESTING /////
     // Sender cannot recv ACK correctly
     //char* test = "S00051111211DFJDKF";
-    //char recvBuf[msg_total_size];
+    char recvBuf[msg_total_size];
     //struct sockaddr_in si_me;
     //socklen_t slen;
-    //while(1){
-        sendto(s, "SSS", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-        //printf("sending");
-    //}
-    ///////////////
-    //recvfrom(s, recvBuf, 3, 0, (struct sockaddr*)&si_other, &slen);
-    ////////////////////
-   // printf("\nACK: %s\n",recvBuf);
+    //sendto(s, "SSS", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    /////////////
+    //recvfrom(s, recvBuf, msg_total_size, 0, (struct sockaddr*)&si_other, &slen);
+    //////////////////
+   printf("\nACK: %s\n",recvBuf);
     //printf("-------------------------------------------------------------");
 
     printf("Closing the socket\n");

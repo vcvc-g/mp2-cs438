@@ -15,7 +15,7 @@
 
 #define msg_header_size 5
 #define msg_body_size 1460
-#define msg_total_size 1463
+#define msg_total_size 1465
 #define MAX_SEQ_NUM 720
 #define RWS 360
 
