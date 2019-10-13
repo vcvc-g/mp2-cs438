@@ -60,7 +60,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
             ACK[0] = 'F';
             ACK[1] = 'F';
             ACK[2] = 'F';
-            if ((sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen))==-1){
+            if ((sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen))==-1){
                 recvInfo->handshake_state = CLOSED;
                 break;
             }
@@ -85,7 +85,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[0] = 'S';
                 ACK[1] = 'S';
                 ACK[2] = 'S';
-                sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
+                sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen);
                 printf("sending SYN message\n");
                 recvInfo->handshake_state = ESTAB;
             }
@@ -108,7 +108,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[0] = 'F';
                 ACK[1] = 'F';
                 ACK[2] = 'F';
-                sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
+                sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen);
                 continue;
             }
 
@@ -130,7 +130,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[0] = 'A';
                 ACK[1] = recvBuffer[1];
                 ACK[2] = recvBuffer[2];
-                sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
+                sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen);
                 printf("sendto finshed\n");
 
             }

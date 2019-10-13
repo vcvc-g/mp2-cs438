@@ -59,7 +59,7 @@ void *reliablySend(){
         // if( senderInfo->handshake_state == ESTAB)
         //     printf("%d\n",  state);
         if(state == LISTEN){
-            sendto(s, "SSS", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+            sendto(s, "SSS", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
             printf("sending SYN to reciever\n");
             /*change state to SYNSENT*/
             senderInfo->handshake_state = SYNSENT;
@@ -100,7 +100,7 @@ void *reliablySend(){
                 continue;
             }
             else{
-                sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                sendto(s, "FFF", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                 gettimeofday(senderInfo->timer_start, NULL);
                 pthread_mutex_unlock(&sender_mutex);
                 continue;
@@ -265,7 +265,7 @@ void *recieve_ack(){
                 /*check if we reach the end*/
                 if((senderInfo->window_packet + i )->number == (senderInfo->packet_number - 1)){     
                     senderInfo->handshake_state = CLOSE_WAIT;
-                    sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                    sendto(s, "FFF", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                     gettimeofday(senderInfo->timer_start, NULL);
                     pthread_mutex_unlock(&sender_mutex);
                     continue;
