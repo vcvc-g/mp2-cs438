@@ -33,9 +33,9 @@ typedef struct sender_window{
 } sw;
 
 typedef struct sender_info {
-    float timeout;
-    float estimated_rtt;
-    float dev_rtt;
+    double timeout;
+    double estimated_rtt;
+    double dev_rtt;
     int congestion_state;
     int ssthresh;
     file_data* window_packet;
@@ -71,7 +71,7 @@ file_data* file_data_array;
 
 int read_file(char* filename, unsigned long long int bytesToTransfer);
 
-float timeout_interval(float sampled_rtt);
+float timeout_interval(double sampled_rtt);
 
 int adjust_window_size(int timeout_flag, int duplicate_flag);
 

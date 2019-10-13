@@ -5,7 +5,7 @@
 void write_file(char *buf, int length, FILE* fptr){
 
     if(fptr){
-        fwrite(&buf, length, 1, fptr);
+        fwrite(buf, length, 1, fptr);
         puts("msg packet write into file OK\n");
     }
 

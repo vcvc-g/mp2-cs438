@@ -52,6 +52,8 @@ void *reliablySend(){
         pthread_mutex_lock(&sender_mutex);
         /*take mutex before accessing the resource*/
         volatile int state = senderInfo->handshake_state;
+        //if(senderInfo->timeout != 0)
+            //printf("it is not zero yet\n");
         //printf("inside thread state is: %d \n", state);
         //sleep(5);
         // if( senderInfo->handshake_state == ESTAB)
@@ -70,20 +72,21 @@ void *reliablySend(){
         else if(senderInfo->handshake_state == SYNSENT){
             /*check timeout*/
             gettimeofday(&timer_now, NULL);
+            printf("Waiting SYN \n");
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            printf("time out %f \n", senderInfo->timeout);
-            float sample_rtt = timer_diff.tv_usec * million;
+            //printf("time out %f \n", senderInfo->timeout);
+            double sample_rtt = timer_diff.tv_usec * million;
             if(sample_rtt <= senderInfo->timeout){
-                printf("rtt: %f\n", sample_rtt);
+                //printf("rtt: %lf\n", sample_rtt);
                 pthread_mutex_unlock(&sender_mutex);
-                printf("waiting\n");
+                //printf("waiting\n");
                 continue;
             }
             else{
                 /*reset the state to listen resent the SYN*/
                 senderInfo->handshake_state = LISTEN;
                 pthread_mutex_unlock(&sender_mutex);
-                printf("time out with waiting time: %f\n", sample_rtt);
+                //printf("time out with waiting time: %f\n", sample_rtt);
                 continue;
             }
         }
@@ -91,7 +94,7 @@ void *reliablySend(){
             printf("there you go ending state");
             gettimeofday(&timer_now, NULL);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec / million;
+            float sample_rtt = timer_diff.tv_usec * million;
             if(sample_rtt <= senderInfo->timeout){
                 pthread_mutex_unlock(&sender_mutex);
                 continue;
@@ -103,8 +106,8 @@ void *reliablySend(){
                 continue;
             }
         }
-    //     else if(senderInfo->handshake_state == CLOSED)
-    //         pthread_exit(0);
+        else if(senderInfo->handshake_state == CLOSED)
+            pthread_exit(0);
     //     //printf("try sending\n");
         /*take the window size and base*/
         volatile int sws = senderInfo->window_size;
@@ -113,8 +116,10 @@ void *reliablySend(){
         //printf("%d\n", sws);
         for(i = 0; i < sws; i++){
             /* case 1: sended and ack just skip */
-            if(base[i].status == 1)
+            if(base[i].status == 1){
+                //printf("acked\n");
                 continue;
+            }
             /* case 2: not send yet */
             else if(base[i].status == -1){
                 if(i == 0){
@@ -131,15 +136,15 @@ void *reliablySend(){
 
             /* case 3:sended not ack yet */
             else if(base[i].status == 0){
-                if(i == 0){
-                    /*check timeout*/
+                if(i == 0){                  
                     gettimeofday(&timer_now, NULL);
                     timersub(&timer_now, senderInfo->timer_start, &timer_diff);
                     float sample_rtt = timer_diff.tv_usec * million;
+                    //printf("checking ack");
                     if(sample_rtt > senderInfo->timeout){
                         adjust_window_size(1, 0);
                         /*reset index to resend*/
-                        printf("try to resend message\n");
+                        //printf("try to resend message rtt: %f timeout: %f\n",sample_rtt, senderInfo->timeout);
                         base[i].status = -1;
                         i = i - 1;
                         continue;
@@ -196,17 +201,19 @@ void *recieve_ack(){
         //pthread_mutex_lock(&sender_mutex);
         /*case reccieve SYN from reciever*/
         if(recvBuf[0] == 'S'){
-            //printf("recieve the SYN info from reciever\n");
+            printf("recieve SYN bit\n");
             gettimeofday(&timer_now, NULL);
             /*case when if sender just timeout but receive*/
             if(senderInfo->handshake_state != SYNSENT){
+                printf("we are in the wrong stare?");
                 pthread_mutex_unlock(&sender_mutex);
                 continue;
             }
+            printf("we are in the correct state");
             /*enter ESTAB state and calcualte the timeout value*/
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec / million;
-            senderInfo->timeout = timeout_interval(sample_rtt);
+            float sample_rtt = timer_diff.tv_usec * million;
+            //senderInfo->timeout = timeout_interval(sample_rtt);
             senderInfo->handshake_state = ESTAB;
 
             /*prepare to send the first byte*/
@@ -218,46 +225,24 @@ void *recieve_ack(){
             continue;
         }
 
-        // /*case reccieve SYN from reciever*/
-        // if(recvBuf[0] == 'S'){
-        //     gettimeofday(&timer_now, NULL);
-        //     /*case when if sender just timeout but receive*/
-        //     if(senderInfo->handshake_state != SYNSENT){
-        //         pthread_mutex_unlock(&sender_mutex);
-        //         continue;
-        //     }
-
-    //         /*enter ESTAB state and calcualte the timeout value*/
-    //         timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-    //         float sample_rtt = timer_diff.tv_usec / million;
-    //         senderInfo->timeout = timeout_interval(sample_rtt);
-    //         senderInfo->handshake_state = ESTAB;
-        
-    //         /*prepare to send the first byte*/
-    //         senderInfo->window_size = 1;
-    //         senderInfo->window_packet = file_data_array;
-
-    //         /*release mutex lock*/
-    //         pthread_mutex_unlock(&sender_mutex);
-    //         continue;
-    //     }
-    //     if (senderInfo->handshake_state == CLOSE_WAIT){
-    //         if(recvBuf[0] == 'F'){
-    //             senderInfo->handshake_state = CLOSED;
-    //             pthread_mutex_unlock(&sender_mutex);
-    //             pthread_exit(0);
-    //         }
-    //     }
+        if (senderInfo->handshake_state == CLOSE_WAIT){
+            if(recvBuf[0] == 'F'){
+                senderInfo->handshake_state = CLOSED;
+                pthread_mutex_unlock(&sender_mutex);
+                pthread_exit(0);
+            }
+        }
 
         /*case recieve an ack*/
         if(recvBuf[0] == 'A'){
+            printf("I am now equal");
             /*calculate the new timeout interval*/
             gettimeofday(&timer_now, NULL);
             /*grab the lock*/
             //pthread_mutex_lock(&sender_mutex);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec / million;
-            senderInfo->timeout = timeout_interval(sample_rtt);
+            float sample_rtt = timer_diff.tv_usec * million;
+            //senderInfo->timeout = timeout_interval(sample_rtt);
 
             /*find the sequence numebr*/
             cur_seq = ((uint8_t)recvBuf[1])*255 + (uint8_t) recvBuf[2];
@@ -269,20 +254,18 @@ void *recieve_ack(){
             
             /*case 1: sequence number match*/
             if(expected_seq == cur_seq){
-                //printf("?");
                 senderInfo->last_ack_seq = cur_seq;
                 /*find the coresponding packet for this ack*/
                 /*this part can be improved*/            
                 for(i = 0; i < senderInfo->window_size; i++){
                     if((senderInfo->window_packet + i)->seq == cur_seq)
-                        (senderInfo->window_packet + i)->status = 1;                       
+                        (senderInfo->window_packet + i)->status = 1;                  
                 }
 
                 /*check if we reach the end*/
                 if((senderInfo->window_packet + i )->number == (senderInfo->packet_number - 1)){     
                     senderInfo->handshake_state = CLOSE_WAIT;
                     sendto(s, "FFF", 3, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-                    printf("asdddddddddddddddddddddddddddddddddddddddddddddd");
                     gettimeofday(senderInfo->timer_start, NULL);
                     pthread_mutex_unlock(&sender_mutex);
                     continue;
@@ -305,6 +288,7 @@ void *recieve_ack(){
             
             /*case 2: sequence number greater than expected*/
             if(expected_seq < cur_seq){
+                printf("I am now smaller ");
                 /*change the status of currect ack*/
                 for(i = 0; i < senderInfo->window_size; i++){
                     if((senderInfo->window_packet + i)->seq == cur_seq)
@@ -325,6 +309,7 @@ void *recieve_ack(){
              
             /*case 3: sequence number less than expected*/
             if(expected_seq > cur_seq){
+                       printf("I am now bigger");
                 /*increment duplicated ack*/
                 if(senderInfo->duplicate_ack != -1)
                     senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
@@ -380,7 +365,6 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     int number = read_file(filename, bytesToTransfer);
     init_sender();
     senderInfo->packet_number = number;
-    printf("%d", senderInfo->handshake_state);
     
     /*sender enter LISTEN state*/
     /*send_msg thread for sending packet to reciever*/

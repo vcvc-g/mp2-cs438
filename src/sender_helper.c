@@ -47,8 +47,8 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         packet_num = packet_num + 1;
     /*malloc enough space for file_data array*/
     file_data_array = calloc(packet_num, sizeof(file_data));
-    printf("packet number: %d\n", packet_num);
-    printf("data size: %d\n", data_size);
+    //printf("packet number: %d\n", packet_num);
+    //printf("data size: %d\n", data_size);
 
     char *file = malloc(data_size);
     fread(file, data_size, 1, fd);
@@ -62,7 +62,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
             cur_file_length = data_size - i*msg_body_size;
         char* start_point = file + i*msg_body_size;
         /*create message*/
-        printf("cur file length:%d \n", cur_file_length);
+        //printf("cur file length:%d \n", cur_file_length);
         //char hee[10]
         size_t total = cur_file_length + 5;
         char* msg = (char* )malloc(total);
@@ -72,7 +72,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         msg[2] = (i % max_seq) % 255;
         msg[3] = cur_file_length % 1400;
         msg[4] = cur_file_length % 255;
-        printf("seq: %d->%d %d->%d\n",(i % max_seq) / 255, (uint8_t)msg[1], (i % max_seq) % 255, (uint8_t)msg[2]);
+        //printf("seq: %d->%d %d->%d\n",(i % max_seq) / 255, (uint8_t)msg[1], (i % max_seq) % 255, (uint8_t)msg[2]);
         for(j = 0; j < cur_file_length; j++ ){
             msg[j + 5] = *(start_point + j);
             //printf("%c", msg[j + 5]);
@@ -85,7 +85,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         file_data_array[i].number = i;
 
     }
-    printf("ds?");
+    //printf("%d", packet_num);
 
     return packet_num;
 
@@ -97,9 +97,9 @@ Function timeout_interval(): calculate timeout interval for sending packet;
 float estimated_rtt: rtt from last timeout_interval call;
 float sampled_rtt: measured rtt from time();
 */
-float timeout_interval(float sampled_rtt) {
-    float estimated_rtt = senderInfo->estimated_rtt;
-    float dev_rtt = senderInfo->dev_rtt;
+float timeout_interval(double  sampled_rtt) {
+    double  estimated_rtt = senderInfo->estimated_rtt;
+    double  dev_rtt = senderInfo->dev_rtt;
     /*calculate dev_rrt*/
     dev_rtt = (1 - BETA) * (dev_rtt) + BETA * fabsf(sampled_rtt - estimated_rtt);
     /*calculate estimated_rtt*/
@@ -188,7 +188,7 @@ int adjust_window_size(int timeout_flag, int duplicate_flag){
 int init_sender(){
     senderInfo = malloc(sizeof(sender_info));
     /*init sender structure*/
-    senderInfo->timeout = 25.0; /*25ms*/
+    senderInfo->timeout = 2500000.0; /*25ms*/
     senderInfo->estimated_rtt = 0.0;
     senderInfo->dev_rtt = 0.0;
     senderInfo->congestion_state = SLOW_START;

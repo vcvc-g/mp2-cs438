@@ -56,6 +56,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
          /* CLOSED WAIT state, check if sender get FINACK */
         if (recvInfo->handshake_state == CLOSED_WAIT){
             /*generate ACK*/
+            printf("ending state\n");
             ACK[0] = 'F';
             ACK[1] = 'F';
             ACK[2] = 'F';
@@ -73,8 +74,8 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
             continue;
         }
         
-        if(recvBytes != 0)
-            printf("message: %d\n", recvBytes );
+        //if(recvBytes != 0)
+            //printf("message: %d\n", recvBytes );
 
         /* LISTEN state, synthesis with sender */
         if (recvInfo->handshake_state == LISTEN){
@@ -87,14 +88,15 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 sentBytes = sendto(s, ACK, 3, 0, (struct sockaddr*)&si_other, slen);
                 printf("sending SYN message\n");
                 recvInfo->handshake_state = ESTAB;
-            }            
+            }
         }
+
 
         /* ESTAB state, start writing file */
         else if (recvInfo->handshake_state == ESTAB) {
-        
             /*check if its SYN */
             if (recvBuffer[0] == 'S'){
+                printf("go back to listen");
                 recvInfo->handshake_state = LISTEN;
                 continue;
             }
