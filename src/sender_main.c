@@ -67,12 +67,15 @@ void reliablySend(){
             }
         }
         else if(senderInfo->handshake_state == CLOSE_WAIT){
-            printf("there you go ending state");
+            //printf("there you go ending state");
             gettimeofday(&timer_now, NULL);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
             float sample_rtt = timer_diff.tv_usec / million;
             if(sample_rtt > senderInfo->timeout){
-                sendto(s, "FFF", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                ACK[0] = 'F';
+                ACK[1] = 'F';
+                ACK[2] = 'F';
+                sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                 gettimeofday(senderInfo->timer_start, NULL);
             }
         }
@@ -199,7 +202,10 @@ void reliablySend(){
                 /*check if we reach the end*/
                 if((senderInfo->window_packet + (i-1) )->number == (senderInfo->packet_number - 1)){     
                     senderInfo->handshake_state = CLOSE_WAIT;
-                    sendto(s, "FFF", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                    ACK[0] = 'F';
+                    ACK[1] = 'F';
+                    ACK[2] = 'F';
+                    sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                     gettimeofday(senderInfo->timer_start, NULL);
                     continue;
                 }

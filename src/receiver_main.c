@@ -50,7 +50,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
     int recvBytes, sentBytes;
     char recvBuffer[msg_total_size];
     // int recv_seq = 0; // FOR TESTING
-
+    //memset(recvBuffer, 'L', msg_total_size); // clean buffer needed
     while(1){
 
         memset(recvBuffer, 'L', msg_total_size); // clean buffer needed
@@ -69,7 +69,8 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 break;
             }
             
-            usleep(25*1000); //sleep for 25ms, not spam bandwidth
+            usleep(25*1000); //sleep for 25ms, not spam bandwidt
+            break;
         }
 
         if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size , 0, (struct sockaddr*)&si_other, &slen)) == -1) {
@@ -175,7 +176,6 @@ int reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     
     slen = sizeof (si_other);
 
- printf("???????????????");
     if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
         diep("socket");
 
