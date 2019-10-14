@@ -70,12 +70,18 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         msg[0] = 'M';
         msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
         msg[2] = (i % max_seq) % 255;
-        msg[3] = cur_file_length / 1400;
-        msg[4] = (cur_file_length - 1400) % 255;
-        printf("seq: %d->%d %d->%d\n",(i % max_seq) / 255, (uint8_t)msg[1], (i % max_seq) % 255, (uint8_t)msg[2]);
-        printf("seq: %d->%d %d->%d\n",cur_file_length / 1400, (uint8_t)msg[3], (cur_file_length - 1400) % 255, (uint8_t)msg[4]);
+        msg[3] = cur_file_length / 1460;
+        msg[4] = 0;
+        msg[5] = 0;
+        if(cur_file_length / 1460 == 0){
+            msg[4] = (cur_file_length) / 255;
+            msg[5] = (cur_file_length) % 255;
+        }
+
+        //printf("seq: %d->%d %d->%d\n",(i % max_seq) / 255, (uint8_t)msg[1], (i % max_seq) % 255, (uint8_t)msg[2]);
+        //printf("seq: %d->%d %d->%d\n",cur_file_length / 1400, (uint8_t)msg[3], (cur_file_length - 1400) % 255, (uint8_t)msg[4]);
         for(j = 0; j < cur_file_length; j++ ){
-            msg[j + 5] = *(start_point + j);
+            msg[j + sender_header_size] = *(start_point + j);
             //printf("%c", msg[j + 5]);
         }
         

@@ -40,7 +40,7 @@ FILE* create_file(char *fileName){
 	if (!fPtr )
 		printf("create file failed");
     
-	printf("file create OK\n");
+	//printf("file create OK\n");
     return fPtr;
 }
 
@@ -59,7 +59,6 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
          /* CLOSED WAIT state, check if sender get FINACK */
         if (recvInfo->handshake_state == CLOSED_WAIT){
             /*generate ACK*/
-            printf("ending state\n");
             ACK[0] = 'F';
             ACK[1] = 'F';
             ACK[2] = 'F';
@@ -91,7 +90,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[2] = 'S';
                 sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen);
                 if(sentBytes)
-                    printf("sending SYN message\n");
+                    //printf("sending SYN message\n");
                 recvInfo->handshake_state = ESTAB;
                 continue;
             }
@@ -122,14 +121,14 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                     /*get sequnce number*/
                 int cur_seq = (uint8_t) recvBuffer[1]*255 + (uint8_t) recvBuffer[2];
                 /*get length*/
-                int length = (uint8_t) recvBuffer[3]*1400 + (uint8_t) recvBuffer[4];
-                printf("rece number :-------->%d %d\n", (uint8_t) recvBuffer[3], (uint8_t)recvBuffer[4] );
+                int length = (uint8_t) recvBuffer[3]*1460 + (uint8_t) recvBuffer[4]*255 + (uint8_t) recvBuffer[5];
+                //printf("rece number :-------->%d %d %d \n", (uint8_t) recvBuffer[3], (uint8_t)recvBuffer[4],  (uint8_t) recvBuffer[5]);
                 ///// FOR TESTING /////
                 //length = recvBytes - msg_header_size; //
                 //////////////////////
-                printf("recieve bytes : %d\n", recvBytes);
-                printf("length: %d\n",length);
-                printf("seq num: %d\n", cur_seq );
+                //printf("recieve bytes : %d\n", recvBytes);
+                //printf("length: %d\n",length);
+                //printf("seq num: %d\n", cur_seq );
                 //printf("data:\n %s\n",recvBuffer + msg_header_size);
                 handle_data(recvBuffer + msg_header_size, cur_seq, recvInfo, dest, length);
                 /*generate ACK*/
@@ -137,7 +136,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[1] = recvBuffer[1];
                 ACK[2] = recvBuffer[2];
                 sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen);
-                printf("sendto finshed\n");
+                //printf("sendto finshed\n");
 
             }
         }
@@ -185,7 +184,7 @@ int reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     si_me.sin_family = AF_INET;
     si_me.sin_port = htons(myUDPport);
     si_me.sin_addr.s_addr = htonl(INADDR_ANY);
-    printf("Now binding\n");
+    //printf("Now binding\n");
     if (bind(s, (struct sockaddr*) &si_me, sizeof (si_me)) == -1)
         diep("bind");
 

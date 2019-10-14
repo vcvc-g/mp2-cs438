@@ -46,7 +46,7 @@ void reliablySend(){
             ACK[1] = 'S';
             ACK[2] = 'S';
             sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-            printf("sending SYN to reciever\n");
+            //printf("sending SYN to reciever\n");
             /*change state to SYNSENT*/
             senderInfo->handshake_state = SYNSENT;
             /*start timer*/
@@ -148,14 +148,14 @@ void reliablySend(){
         }
         /*case reccieve SYN from reciever*/
         if(recvBuf[0] == 'S'){
-            printf("recieve SYN bit\n");
+            //printf("recieve SYN bit\n");
             gettimeofday(&timer_now, NULL);
             /*case when if sender just timeout but receive*/
             if(senderInfo->handshake_state != SYNSENT){
-                printf("we are in the wrong stare?");
+                //printf("we are in the wrong stare?");
                 continue;
             }
-            printf("we are in the correct state\n");
+           // printf("we are in the correct state\n");
             /*enter ESTAB state and calcualte the timeout value*/
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
             float sample_rtt = timer_diff.tv_usec / million;
@@ -172,7 +172,7 @@ void reliablySend(){
 
         /*case recieve an ack*/
         if(recvBuf[0] == 'A'){
-            printf("I am now equal\n");
+            //printf("I am now equal\n");
             /*calculate the new timeout interval*/
             gettimeofday(&timer_now, NULL);
             /*grab the lock*/
@@ -183,7 +183,7 @@ void reliablySend(){
 
             /*find the sequence numebr*/
             int cur_seq = ((uint8_t)recvBuf[1])*255 + (uint8_t) recvBuf[2];
-            printf("I recieve an ack seq: %d\n", cur_seq );
+            //printf("I recieve an ack seq: %d\n", cur_seq );
             int expected_seq = (senderInfo->window_packet)->seq;
             /*first ack*/
             if(senderInfo->last_ack_seq == -1)
@@ -202,10 +202,9 @@ void reliablySend(){
                 int count = 0;
                 for(i = 0; i < senderInfo->window_size; i++){
                     if((senderInfo->window_packet + i)->status !=1)
-                        //break;
+                        break;
                     count++;                 
                 }
-
                 /*check if we reach the end*/
                 if((senderInfo->window_packet + count - 1)->number == (senderInfo->packet_number - 1)){     
                     senderInfo->handshake_state = CLOSE_WAIT;
@@ -222,7 +221,6 @@ void reliablySend(){
                 /*adjust window*/
                 adjust_window_size(0, 0);
                 /*chage window base*/
-                    
                 /*reamining packet*/
                 int reamining = (senderInfo->packet_number) - (senderInfo->window_packet + count) -> number;
                 if(senderInfo->window_size > reamining)
@@ -234,7 +232,6 @@ void reliablySend(){
             
             /*case 2: sequence number greater than expected*/
             if(expected_seq < cur_seq){
-                printf("I am now smaller %d\n");
                 /*change the status of currect ack*/
                 for(i = 0; i < senderInfo->window_size; i++){
                     if((senderInfo->window_packet + i)->seq == cur_seq)
@@ -253,7 +250,7 @@ void reliablySend(){
              
             /*case 3: sequence number less than expected*/
             if(expected_seq > cur_seq){
-                       printf("I am now bigger\n");
+                 //      printf("I am now bigger\n");
                 /*increment duplicated ack*/
                 if(senderInfo->duplicate_ack != -1)
                     senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
@@ -512,7 +509,7 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     // printf("\nACK: %s\n",recvBuf);
     //printf("-------------------------------------------------------------");
 
-    printf("Closing the socket\n");
+    //printf("Closing the socket\n");
     close(s);
     return 0;
 }

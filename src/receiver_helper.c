@@ -5,8 +5,8 @@
 void write_file(char *buf, int length, FILE* fptr){
 
     if(fptr){
-        fwrite(buf, length, 1, fptr);
-        puts("msg packet write into file OK\n");
+        fwrite(buf, 1, length, fptr);
+        //puts("msg packet write into file OK\n");
     }
 
 }
@@ -15,12 +15,12 @@ void write_file(char *buf, int length, FILE* fptr){
 void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int length){
     size_t data_len, i;
 
-    printf("////IN HANDLE_DATA FUNCTION////\n");
+    //printf("////IN HANDLE_DATA FUNCTION////\n");
     /*check if recv_seq in window */
     int expected_seq = recvInfo->next_expected;
     /*check if in the window*/
     /*recv_----->720, expected---->720*/
-    if(((0 < (recv_seq - expected_seq)) && ((recv_seq - expected_seq) < RWS)) ||
+    if(((0 <= (recv_seq - expected_seq)) && ((recv_seq - expected_seq) < RWS)) ||
             (recv_seq + MAX_SEQ_NUM - expected_seq < RWS)){
         int window_idx = expected_seq % RWS;
         /*check duplicate*/
@@ -41,7 +41,7 @@ void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int 
             else
                 break;
         }
-        recvInfo->next_expected = (recvInfo->next_expected + 1 + i)% MAX_SEQ_NUM;
+        recvInfo->next_expected = (recvInfo->next_expected + i)% MAX_SEQ_NUM;
     }
     return;
 
@@ -56,7 +56,7 @@ recv_info* int_receiver(){
     recvInfo->next_expected = 0;
     recvInfo->handshake_state  = -1;
     memset(recvInfo->recv_window, 0, RWS);
-    printf("receiver init OK\n");
+    //printf("receiver init OK\n");
 
     return recvInfo;
 }

@@ -7,8 +7,8 @@ int main() {
    int i = 0;
 
    fp = fopen("./hello.txt", "w+");
-   for(i = 0; i < (1500*3); i++){
-        fputs("b", fp);
+   for(i = 0; i < (1465*2); i++){
+        fputs("b\n", fp);
    }
    fclose(fp);
 }
