@@ -28,6 +28,8 @@ int s ;
 socklen_t slen;
 //static int fptr;
 
+int reliablyReceive(unsigned short int myUDPport, char* destinationFile);
+
 void diep(char *s) {
     perror(s);
     exit(1);
@@ -170,7 +172,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
 }
 
 
-void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
+int reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     
     slen = sizeof (si_other);
 
@@ -190,15 +192,15 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
     // fcntl(s, F_SETFL, O_NONBLOCK);
 	// /* Create recv_output file */
-    FILE* dest = create_file(destinationFile);
+    //FILE* dest = create_file(destinationFile);
     /*init reciever*/
-    recv_info* recvInfo = int_receiver();
+    //recv_info* recvInfo = int_receiver();
     /*receieve enter LISTEN state*/
-    recvInfo->handshake_state  = LISTEN;
+    //ecvInfo->handshake_state  = LISTEN;
     /*start recieve data*/
     //recv_packet(dest, recvInfo);
     int recvBytes  = 0;
-    char recvBuffer[3];
+    char recvBuffer[msg_total_size];
    // printf("this code has problem");
  while(1){
         if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size, 0, (struct sockaddr*)&si_other, &slen)) == -1){
@@ -229,9 +231,10 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     // pthread_join(time_tid, NULL);
 
 
-    close(s);
-    fclose(dest);
+    //close(s);
+    //fclose(dest);
 	//printf("%s received.", destinationFile);
+    return 0;
 }
 
 /*
