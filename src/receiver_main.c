@@ -80,7 +80,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
         }
            //printf("after buffer: %s\n", recvBuffer); 
         //if(recvBytes != 0)
-            //printf("message: %d\n", recvBytes );
+            // /printf("message: %s\n", recvBuffer);
         /* LISTEN state, synthesis with sender */
         if (recvInfo->handshake_state == LISTEN){
             /*Wait for the SYN from Sender*/
@@ -89,7 +89,6 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 ACK[0] = 'S';
                 ACK[1] = 'S';
                 ACK[2] = 'S';
-                sleep(5);
                 sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen);
                 if(sentBytes)
                     printf("sending SYN message\n");
@@ -192,23 +191,23 @@ int reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
     // fcntl(s, F_SETFL, O_NONBLOCK);
 	// /* Create recv_output file */
-    //FILE* dest = create_file(destinationFile);
+    FILE* dest = create_file(destinationFile);
     /*init reciever*/
-    //recv_info* recvInfo = int_receiver();
+    recv_info* recvInfo = int_receiver();
     /*receieve enter LISTEN state*/
-    //ecvInfo->handshake_state  = LISTEN;
+    recvInfo->handshake_state  = LISTEN;
     /*start recieve data*/
-    //recv_packet(dest, recvInfo);
-    int recvBytes  = 0;
-    char recvBuffer[msg_total_size];
+    recv_packet(dest, recvInfo);
+    //int recvBytes  = 0;
+    //char recvBuffer[msg_total_size];
    // printf("this code has problem");
- while(1){
-        if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size, 0, (struct sockaddr*)&si_other, &slen)) == -1){
-            printf("sd?\n");
-            //continue;
-        }
-        break;
-   }
+//  while(1){
+//         if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size, 0, (struct sockaddr*)&si_other, &slen)) == -1){
+//             printf("sd?\n");
+//             //continue;
+//         }
+//         break;
+//    }
 //         printf("1111111111111111");
 //         //break;
 //     //}
@@ -219,7 +218,7 @@ int reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     //int flag = 0;
     //while(1){
         //printf("????????????????????/");
-    int sentBytes = sendto(s, "ABC", msg_total_size, 0, (struct sockaddr*)&si_other, slen);
+   // int sentBytes = sendto(s, "ABC", msg_total_size, 0, (struct sockaddr*)&si_other, slen);
         //break;
     //}
     
@@ -231,8 +230,8 @@ int reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     // pthread_join(time_tid, NULL);
 
 
-    //close(s);
-    //fclose(dest);
+    close(s);
+    fclose(dest);
 	//printf("%s received.", destinationFile);
     return 0;
 }

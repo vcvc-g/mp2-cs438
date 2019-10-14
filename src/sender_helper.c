@@ -188,7 +188,7 @@ int adjust_window_size(int timeout_flag, int duplicate_flag){
 int init_sender(){
     senderInfo = malloc(sizeof(sender_info));
     /*init sender structure*/
-    senderInfo->timeout = 2000.0; /*25ms*/
+    senderInfo->timeout = 40.0; /*25ms*/
     senderInfo->estimated_rtt = 0.0;
     senderInfo->dev_rtt = 0.0;
     senderInfo->congestion_state = SLOW_START;

@@ -55,20 +55,22 @@ void reliablySend(){
         else if(senderInfo->handshake_state == SYNSENT){
             /*check timeout*/
             gettimeofday(&timer_now, NULL);
-            printf("Waiting SYN \n");
+            //printf("Waiting SYN \n");
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            printf("time out %f \n", senderInfo->timeout);
+            //printf("time out %f \n", senderInfo->timeout);
  
-            double sample_rtt = timer_diff.tv_usec * million;
-            printf("rtt %f \n", sample_rtt );
-            if(sample_rtt > senderInfo->timeout)
+            double sample_rtt = timer_diff.tv_usec / million;
+            //printf("rtt %f \n", sample_rtt );
+            if(sample_rtt > senderInfo->timeout){
                 senderInfo->handshake_state = LISTEN;
+                continue;
+            }
         }
         else if(senderInfo->handshake_state == CLOSE_WAIT){
             printf("there you go ending state");
             gettimeofday(&timer_now, NULL);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec * million;
+            float sample_rtt = timer_diff.tv_usec / million;
             if(sample_rtt > senderInfo->timeout){
                 sendto(s, "FFF", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                 gettimeofday(senderInfo->timer_start, NULL);
@@ -81,8 +83,8 @@ void reliablySend(){
             int sws = senderInfo->window_size;
             file_data* base = senderInfo->window_packet;
             int i;
-            if (sws == 1)
-                printf("%d\n", sws);
+            // if (sws == 1)
+            //     printf("%d\n", sws);
             for(i = 0; i < sws; i++){
                 /* case 1: sended and ack just skip */
                 if(base[i].status == 1){
@@ -106,7 +108,7 @@ void reliablySend(){
                     if(i == 0){                  
                         gettimeofday(&timer_now, NULL);
                         timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-                        float sample_rtt = timer_diff.tv_usec * million;
+                        float sample_rtt = timer_diff.tv_usec / million;
                         //printf("checking ack");
                         //if(sample_rtt > senderInfo->timeout){
                             //adjust_window_size(1, 0);
@@ -150,10 +152,10 @@ void reliablySend(){
                 printf("we are in the wrong stare?");
                 continue;
             }
-            printf("we are in the correct state");
+            printf("we are in the correct state\n");
             /*enter ESTAB state and calcualte the timeout value*/
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec * million;
+            float sample_rtt = timer_diff.tv_usec / million;
             //senderInfo->timeout = timeout_interval(sample_rtt);
             senderInfo->handshake_state = ESTAB;
 
@@ -167,13 +169,13 @@ void reliablySend(){
 
         /*case recieve an ack*/
         if(recvBuf[0] == 'A'){
-            printf("I am now equal");
+            printf("I am now equal\n");
             /*calculate the new timeout interval*/
             gettimeofday(&timer_now, NULL);
             /*grab the lock*/
             //pthread_mutex_lock(&sender_mutex);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec * million;
+            float sample_rtt = timer_diff.tv_usec / million;
             //senderInfo->timeout = timeout_interval(sample_rtt);
 
             /*find the sequence numebr*/
@@ -195,7 +197,7 @@ void reliablySend(){
                 }
 
                 /*check if we reach the end*/
-                if((senderInfo->window_packet + i )->number == (senderInfo->packet_number - 1)){     
+                if((senderInfo->window_packet + (i-1) )->number == (senderInfo->packet_number - 1)){     
                     senderInfo->handshake_state = CLOSE_WAIT;
                     sendto(s, "FFF", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                     gettimeofday(senderInfo->timer_start, NULL);
@@ -218,7 +220,7 @@ void reliablySend(){
             
             /*case 2: sequence number greater than expected*/
             if(expected_seq < cur_seq){
-                printf("I am now smaller ");
+                printf("I am now smaller\n");
                 /*change the status of currect ack*/
                 for(i = 0; i < senderInfo->window_size; i++){
                     if((senderInfo->window_packet + i)->seq == cur_seq)
@@ -237,7 +239,7 @@ void reliablySend(){
              
             /*case 3: sequence number less than expected*/
             if(expected_seq > cur_seq){
-                       printf("I am now bigger");
+                       printf("I am now bigger\n");
                 /*increment duplicated ack*/
                 if(senderInfo->duplicate_ack != -1)
                     senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
@@ -459,7 +461,7 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     /*sender enter LISTEN state*/
     senderInfo->handshake_state = LISTEN;
 
-    //reliablySend();
+    reliablySend();
 
     /*
     /*send_msg thread for sending packet to reciever*/
@@ -479,21 +481,21 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     ///// FOR TESTING /////
     // Sender cannot recv ACK correctly
     //char* test = "S00051111211DFJDKF";
-    char recvBuf[msg_total_size];
-    //struct sockaddr_in si_me;
-    //socklen_t slen;
-    sendto(s, "SSS", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-    struct timeval timer_now, timer_diff, timer_start;
-    gettimeofday(&timer_start, NULL);
-    /////////////
-    recvfrom(s, recvBuf, msg_total_size, 0, (struct sockaddr*)&si_other, &slen);
-    gettimeofday(&timer_now, NULL);
+    // char recvBuf[msg_total_size];
+    // //struct sockaddr_in si_me;
+    // //socklen_t slen;
+    // sendto(s, "SSS", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    // struct timeval timer_now, timer_diff, timer_start;
+    // gettimeofday(&timer_start, NULL);
+    // /////////////
+    // recvfrom(s, recvBuf, msg_total_size, 0, (struct sockaddr*)&si_other, &slen);
+    // gettimeofday(&timer_now, NULL);
 
-    timersub(&timer_now, &timer_start, &timer_diff);
-    printf("time_diff :%lu\n", timer_diff.tv_usec);
+    // timersub(&timer_now, &timer_start, &timer_diff);
+    // printf("time_diff :%lu\n", timer_diff.tv_usec);
 
-    //////////////////
-    printf("\nACK: %s\n",recvBuf);
+    // //////////////////
+    // printf("\nACK: %s\n",recvBuf);
     //printf("-------------------------------------------------------------");
 
     printf("Closing the socket\n");
