@@ -183,7 +183,7 @@ void reliablySend(){
 
             /*find the sequence numebr*/
             int cur_seq = ((uint8_t)recvBuf[1])*255 + (uint8_t) recvBuf[2];
-            //printf("I recieve an ack seq: %d\n", cur_seq );
+            printf("I recieve an ack seq: %d\n", cur_seq );
             int expected_seq = (senderInfo->window_packet)->seq;
             /*first ack*/
             if(senderInfo->last_ack_seq == -1)
@@ -199,8 +199,15 @@ void reliablySend(){
                         (senderInfo->window_packet + i)->status = 1;                  
                 }
 
+                int count = 0;
+                for(i = 0; i < senderInfo->window_size; i++){
+                    if((senderInfo->window_packet + i)->status !=1)
+                        //break;
+                    count++;                 
+                }
+
                 /*check if we reach the end*/
-                if((senderInfo->window_packet + (i-1) )->number == (senderInfo->packet_number - 1)){     
+                if((senderInfo->window_packet + count - 1)->number == (senderInfo->packet_number - 1)){     
                     senderInfo->handshake_state = CLOSE_WAIT;
                     ACK[0] = 'F';
                     ACK[1] = 'F';
@@ -215,18 +222,19 @@ void reliablySend(){
                 /*adjust window*/
                 adjust_window_size(0, 0);
                 /*chage window base*/
+                    
                 /*reamining packet*/
-                int reamining = (senderInfo->packet_number) - (senderInfo->window_packet + i) -> number - 1;
+                int reamining = (senderInfo->packet_number) - (senderInfo->window_packet + count) -> number;
                 if(senderInfo->window_size > reamining)
                     senderInfo->window_size = reamining;
-                senderInfo->window_packet = senderInfo->window_packet + i + 1;
+                senderInfo->window_packet = senderInfo->window_packet + count;
                 /*release the lock*/
                 continue;
             }
             
             /*case 2: sequence number greater than expected*/
             if(expected_seq < cur_seq){
-                printf("I am now smaller\n");
+                printf("I am now smaller %d\n");
                 /*change the status of currect ack*/
                 for(i = 0; i < senderInfo->window_size; i++){
                     if((senderInfo->window_packet + i)->seq == cur_seq)
@@ -259,7 +267,7 @@ void reliablySend(){
         }
         
     }
-    return NULL;
+    return ;
 }
 
 // void *recieve_ack(){
@@ -506,7 +514,7 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
 
     printf("Closing the socket\n");
     close(s);
-    return NULL;
+    return 0;
 }
 
 

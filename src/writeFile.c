@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-main() {
+int main() {
    FILE *fp;
    int i = 0;
 

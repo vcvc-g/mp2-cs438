@@ -15,7 +15,7 @@ void write_file(char *buf, int length, FILE* fptr){
 void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int length){
     size_t data_len, i;
 
-    printf("\n////IN HANDLE_DATA FUNCTION////\n");
+    printf("////IN HANDLE_DATA FUNCTION////\n");
     /*check if recv_seq in window */
     int expected_seq = recvInfo->next_expected;
     /*check if in the window*/
@@ -29,12 +29,12 @@ void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int 
             memcpy(recvInfo->recv_buffer[window_idx], data, length); // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
             recvInfo->recv_dataLen[window_idx] = length; // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
             recvInfo->recv_window[window_idx] = 1;
-            printf("recvInfo->recv_buffer[%d]: %s\n",window_idx, recvInfo->recv_buffer[window_idx]);
+            //sprintf("recvInfo->recv_buffer[%d]: %s\n",window_idx, recvInfo->recv_buffer[window_idx]);
         }
         for(i = 0; i < RWS; i++){
-            window_idx = (window_idx+i)%RWS;
+            window_idx = (window_idx + i) % RWS;
             if(recvInfo->recv_window[window_idx]){
-            printf("recvInfo->recv_buffer[%d]: %s\n",window_idx, recvInfo->recv_buffer[window_idx]);
+            //printf("recvInfo->recv_buffer[%d]: %s\n",window_idx, recvInfo->recv_buffer[window_idx]);
             write_file(recvInfo->recv_buffer[window_idx], recvInfo->recv_dataLen[window_idx], dest); 
             recvInfo->recv_window[window_idx] = 0;
             }

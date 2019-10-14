@@ -52,7 +52,6 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
     // int recv_seq = 0; // FOR TESTING
     //memset(recvBuffer, 'L', msg_total_size); // clean buffer needed
     while(1){
-
         memset(recvBuffer, 'L', msg_total_size); // clean buffer needed
         //printf("start buffer: %s\n", recvBuffer);
         //sleep(1);
@@ -123,14 +122,15 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                     /*get sequnce number*/
                 int cur_seq = (uint8_t) recvBuffer[1]*255 + (uint8_t) recvBuffer[2];
                 /*get length*/
-                int length = recvBuffer[3]*1400 + recvBuffer[4];
+                int length = (uint8_t) recvBuffer[3]*1400 + (uint8_t) recvBuffer[4];
+                printf("rece number :-------->%d %d\n", (uint8_t) recvBuffer[3], (uint8_t)recvBuffer[4] );
                 ///// FOR TESTING /////
-                length = recvBytes - msg_header_size; //
+                //length = recvBytes - msg_header_size; //
                 //////////////////////
                 printf("recieve bytes : %d\n", recvBytes);
                 printf("length: %d\n",length);
-                printf("data: %s\n",recvBuffer + msg_header_size);
-                printf("seq num: %d", cur_seq );
+                printf("seq num: %d\n", cur_seq );
+                printf("data:\n %s\n",recvBuffer + msg_header_size);
                 handle_data(recvBuffer + msg_header_size, cur_seq, recvInfo, dest, length);
                 /*generate ACK*/
                 ACK[0] = 'A';
