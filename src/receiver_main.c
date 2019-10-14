@@ -196,17 +196,17 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     /*receieve enter LISTEN state*/
     recvInfo->handshake_state  = LISTEN;
     /*start recieve data*/
-    recv_packet(dest, recvInfo);
+    //recv_packet(dest, recvInfo);
     int recvBytes  = 0;
     char recvBuffer[3];
    // printf("this code has problem");
-//    while(1){
-//         if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size, 0, (struct sockaddr*)&si_other, &slen)) == -1){
-//             printf("sd?\n");
-//             //continue;
-//         }
-//         break;
-//    }
+ while(1){
+        if ((recvBytes = recvfrom(s, recvBuffer, msg_total_size, 0, (struct sockaddr*)&si_other, &slen)) == -1){
+            printf("sd?\n");
+            //continue;
+        }
+        break;
+   }
 //         printf("1111111111111111");
 //         //break;
 //     //}
@@ -214,10 +214,12 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 //     //     //perror("receiver recv_packet failed\n");
 //     //     //exit(1);
 //     // // }
-//     while(1){
-//         printf("????????????????????/");
-//         int sentBytes = sendto(s, "SSS", msg_total_size, 0, (struct sockaddr*)&si_other, slen);
-//     }
+    //int flag = 0;
+    //while(1){
+        //printf("????????????????????/");
+    int sentBytes = sendto(s, "ABC", msg_total_size, 0, (struct sockaddr*)&si_other, slen);
+        //break;
+    //}
     
 	/* Now receive data and send acknowledgements */   
     //pthread_t recv_tid;
@@ -229,8 +231,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
     close(s);
     fclose(dest);
-	printf("%s received.", destinationFile);
-    return;
+	//printf("%s received.", destinationFile);
 }
 
 /*
@@ -248,5 +249,7 @@ int main(int argc, char** argv) {
     udpPort = (unsigned short int) atoi(argv[1]);
 
     reliablyReceive(udpPort, argv[2]);
+
+    return 0;
 }
 

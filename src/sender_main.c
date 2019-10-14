@@ -55,14 +55,14 @@ void reliablySend(){
         else if(senderInfo->handshake_state == SYNSENT){
             /*check timeout*/
             gettimeofday(&timer_now, NULL);
-            //printf("Waiting SYN \n");
+            printf("Waiting SYN \n");
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            //printf("time out %f \n", senderInfo->timeout);
+            printf("time out %f \n", senderInfo->timeout);
  
             double sample_rtt = timer_diff.tv_usec * million;
-            //printf("rtt %f \n", sample_rtt );
-            //if(sample_rtt > senderInfo->timeout)
-                //senderInfo->handshake_state = LISTEN;
+            printf("rtt %f \n", sample_rtt );
+            if(sample_rtt > senderInfo->timeout)
+                senderInfo->handshake_state = LISTEN;
         }
         else if(senderInfo->handshake_state == CLOSE_WAIT){
             printf("there you go ending state");
@@ -459,7 +459,7 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     /*sender enter LISTEN state*/
     senderInfo->handshake_state = LISTEN;
 
-    reliablySend();
+    //reliablySend();
 
     /*
     /*send_msg thread for sending packet to reciever*/
@@ -482,11 +482,18 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
     char recvBuf[msg_total_size];
     //struct sockaddr_in si_me;
     //socklen_t slen;
-    //sendto(s, "SSS", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    sendto(s, "SSS", msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+    struct timeval timer_now, timer_diff, timer_start;
+    gettimeofday(&timer_start, NULL);
     /////////////
-    //recvfrom(s, recvBuf, msg_total_size, 0, (struct sockaddr*)&si_other, &slen);
+    recvfrom(s, recvBuf, msg_total_size, 0, (struct sockaddr*)&si_other, &slen);
+    gettimeofday(&timer_now, NULL);
+
+    timersub(&timer_now, &timer_start, &timer_diff);
+    printf("time_diff :%lu\n", timer_diff.tv_usec);
+
     //////////////////
-   printf("\nACK: %s\n",recvBuf);
+    printf("\nACK: %s\n",recvBuf);
     //printf("-------------------------------------------------------------");
 
     printf("Closing the socket\n");
