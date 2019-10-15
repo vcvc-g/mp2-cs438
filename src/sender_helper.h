@@ -4,6 +4,7 @@
 #include <math.h>
 #include <sys/time.h>
 #include <string.h>
+#include <stdint.h>
 
 #define max_window_size 360
 #define msg_body_size 1460
