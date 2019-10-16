@@ -40,15 +40,19 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
     fseek(fd, 0, SEEK_END); 
     int file_size = ftell(fd); 
     fseek(fd, 0, SEEK_SET);
+
+    
     /*find the msg data size & max sequnce number*/
     size_t data_size = bytesToTransfer < (file_size) ? bytesToTransfer  : file_size;
     int packet_num = data_size / msg_body_size;
     if(data_size % msg_body_size)
         packet_num = packet_num + 1;
+
+
     /*malloc enough space for file_data array*/
     file_data_array = calloc(packet_num, sizeof(file_data));
-    printf("packet number: %d\n", packet_num);
-    printf("data size: %d\n", data_size);
+    //printf("packet number: %d\n", packet_num);
+    //printf("data size: %d\n", data_size);
 
     char *file = malloc(data_size);
     fread(file, data_size, 1, fd);
@@ -62,7 +66,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
             cur_file_length = data_size - i*msg_body_size;
         char* start_point = file + i*msg_body_size;
         /*create message*/
-        printf("cur file length:%d \n", cur_file_length);
+        //printf("cur file length:%d \n", cur_file_length);
         //char hee[10]
         size_t total = cur_file_length + 5;
         char* msg = (char* )malloc(total);
@@ -70,22 +74,29 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         msg[0] = 'M';
         msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
         msg[2] = (i % max_seq) % 255;
-        msg[3] = cur_file_length % 1400;
-        msg[4] = cur_file_length % 255;
-        printf("seq: %d->%d %d->%d\n",(i % max_seq) / 255, (uint8_t)msg[1], (i % max_seq) % 255, (uint8_t)msg[2]);
+        msg[3] = cur_file_length / 1460;
+        msg[4] = 0;
+        msg[5] = 0;
+        if(cur_file_length / 1460 == 0){
+            msg[4] = (cur_file_length) / 255;
+            msg[5] = (cur_file_length) % 255;
+        }
+
+        //printf("seq: %d->%d %d->%d\n",(i % max_seq) / 255, (uint8_t)msg[1], (i % max_seq) % 255, (uint8_t)msg[2]);
+        //printf("seq: %d->%d %d->%d\n",cur_file_length / 1400, (uint8_t)msg[3], (cur_file_length - 1400) % 255, (uint8_t)msg[4]);
         for(j = 0; j < cur_file_length; j++ ){
-            msg[j + 5] = *(start_point + j);
+            msg[j + sender_header_size] = *(start_point + j);
             //printf("%c", msg[j + 5]);
         }
         
         file_data_array[i].data = msg;
         file_data_array[i].length = sender_header_size + cur_file_length;
-        file_data_array[i].status = -1;
+        file_data_array[i].status = 0;
         file_data_array[i].seq = i % max_seq;
         file_data_array[i].number = i;
 
     }
-    printf("ds?");
+    //printf("%d", packet_num);
 
     return packet_num;
 
@@ -97,20 +108,25 @@ Function timeout_interval(): calculate timeout interval for sending packet;
 float estimated_rtt: rtt from last timeout_interval call;
 float sampled_rtt: measured rtt from time();
 */
-float timeout_interval(float sampled_rtt) {
-    float estimated_rtt = senderInfo->estimated_rtt;
-    float dev_rtt = senderInfo->dev_rtt;
-    /*calculate dev_rrt*/
-    dev_rtt = (1 - BETA) * (dev_rtt) + BETA * fabsf(sampled_rtt - estimated_rtt);
-    /*calculate estimated_rtt*/
-    estimated_rtt = (1 - ALPHA) * estimated_rtt + ALPHA * sampled_rtt + 4 * dev_rtt;
-
-    /*update dev_rtt*/
-    senderInfo->estimated_rtt = estimated_rtt;
-    senderInfo->dev_rtt = dev_rtt;
-
-    return estimated_rtt;
+double timeout_interval(int RTT, int time) {
+    if (time < 0) return RTT;
+    float result = RTT * ALPHA + (1 - ALPHA) * time;
+    return (int)result;
 }
+// double timeout_interval(double  sampled_rtt) {
+    // double  estimated_rtt = senderInfo->estimated_rtt;
+    // double  dev_rtt = senderInfo->dev_rtt;
+    // /*calculate dev_rrt*/
+    // dev_rtt = (1 - BETA) * (dev_rtt) + BETA * fabsf(sampled_rtt - estimated_rtt);
+    // /*calculate estimated_rtt*/
+    // estimated_rtt = (1 - ALPHA) * estimated_rtt + ALPHA * sampled_rtt + 4 * dev_rtt;
+
+    // /*update dev_rtt*/
+    // senderInfo->estimated_rtt = estimated_rtt;
+    // senderInfo->dev_rtt = dev_rtt;
+
+    // return estimated_rtt;
+// }
 
 int adjust_window_size(int timeout_flag, int duplicate_flag){
     int cur_state = senderInfo->congestion_state;
@@ -121,13 +137,15 @@ int adjust_window_size(int timeout_flag, int duplicate_flag){
     if (cur_state == SLOW_START) {
         /*duplicated ack*/
         if(senderInfo->duplicate_ack == 3){
-            senderInfo->ssthresh = cur_ssthresh/2;
-            senderInfo->window_size = cur_window_size + 3;
+            senderInfo->ssthresh = cur_window_size/2;
+            senderInfo->window_size = 1;
             senderInfo->congestion_state = FAST_RECOVERY;
         }
         else if(timeout_flag == 0){
             /*new ack*/
-            senderInfo->window_size =  cur_window_size + 1;
+            if(cur_window_size < max_window_size){
+                senderInfo->window_size =  cur_window_size + 2;
+            }
             senderInfo->duplicate_ack = 0;
             /*reach ssthresh*/
             if (senderInfo->window_size >= cur_ssthresh)
@@ -148,37 +166,50 @@ int adjust_window_size(int timeout_flag, int duplicate_flag){
             senderInfo->ssthresh = cur_window_size/2;
             senderInfo->window_size = 1;
             senderInfo->duplicate_ack = 0;
+            senderInfo->congestion_state = SLOW_START;
         }
-        else if(senderInfo->duplicate_ack != 3){
-            /*new ack*/
-            senderInfo->ca_extra += 1.0*(1.0/cur_window_size);
-            senderInfo->duplicate_ack = 0;
-            int temp = senderInfo->ca_extra;
-            if(temp >= 1)
-                senderInfo->window_size = cur_window_size + temp;
-        }
+
         else if(senderInfo->duplicate_ack == 3){
             /*duplicate case*/
             senderInfo->ssthresh = cur_window_size/2;
-            senderInfo->window_size = senderInfo->ssthresh + 3;
+            senderInfo->window_size = cur_ssthresh + 3;
             senderInfo->congestion_state = FAST_RECOVERY;
+        }
+
+        else {
+            /*new ack*/
+            // senderInfo->ca_extra += 1.0*(1.0/cur_window_size);
+            // senderInfo->duplicate_ack = 0;
+            // int temp = senderInfo->ca_extra;
+            // if(temp >= 1)
+            //     senderInfo->window_size = cur_window_size + temp;
+            senderInfo->duplicate_ack = 0;
+            if(cur_window_size < max_window_size){
+                senderInfo->window_size =  cur_window_size + 1;
+            }
+
         }
     }
 
     /*case 3: FAST_RECOVERY*/
     else if (cur_state == FAST_RECOVERY) {
-        if(duplicate_flag != 1){
-            senderInfo->window_size = senderInfo->ssthresh;
-            senderInfo->duplicate_ack = 0;
-        }
-        else if(duplicate_flag == 1){
-            senderInfo->window_size =  cur_window_size + 1;
+
+        if(duplicate_flag == 1){
+            if(cur_window_size < max_window_size){
+                senderInfo->window_size =  cur_window_size + 1;
+            }
         }
         else if(timeout_flag == 1){
             senderInfo->ssthresh = cur_window_size/2;
             senderInfo->window_size = 1;
             senderInfo->duplicate_ack = 0;
             senderInfo->congestion_state = SLOW_START;
+            
+        }
+        else{
+            senderInfo->window_size = cur_ssthresh;
+            senderInfo->duplicate_ack = 0;
+            senderInfo->congestion_state = CONGESTION_AVOID;
         }
     }
     
@@ -188,11 +219,11 @@ int adjust_window_size(int timeout_flag, int duplicate_flag){
 int init_sender(){
     senderInfo = malloc(sizeof(sender_info));
     /*init sender structure*/
-    senderInfo->timeout = 25.0; /*25ms*/
+    senderInfo->timeout = 40.0; /*25ms*/
     senderInfo->estimated_rtt = 0.0;
     senderInfo->dev_rtt = 0.0;
     senderInfo->congestion_state = SLOW_START;
-    senderInfo->ssthresh = max_window_size;
+    senderInfo->ssthresh = 64;
     senderInfo->window_packet = NULL;
     senderInfo->window_size = 0;
     senderInfo->timer_start = (struct timeval*) malloc(sizeof(struct timeval));
@@ -202,6 +233,7 @@ int init_sender(){
     /*sender enter LISTEN state*/
     senderInfo->handshake_state =  LISTEN;
     senderInfo->packet_number = -1;
+    senderInfo->packet_sent = 0;
     return 0;
 }
 

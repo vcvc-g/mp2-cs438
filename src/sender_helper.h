@@ -8,8 +8,8 @@
 
 #define max_window_size 360
 #define msg_body_size 1460
-#define sender_header_size 5
-#define msg_total_size 1465
+#define sender_header_size 6
+#define msg_total_size 1466
 #define max_seq 720
 #define million 1000
 
@@ -19,9 +19,10 @@ typedef struct file_data_struct{
     int seq;
     char* data;
 
-    int status; /** -1 means not send
-                 * 0  means send not ack
-                 * 1 means ack 
+    int status; /** 
+                 * 0 means not send
+                 * 1 means send not ack
+                 * 2 means ack 
                  **/
 } file_data;
 
@@ -33,9 +34,9 @@ typedef struct sender_window{
 } sw;
 
 typedef struct sender_info {
-    float timeout;
-    float estimated_rtt;
-    float dev_rtt;
+    double timeout;
+    double estimated_rtt;
+    double dev_rtt;
     int congestion_state;
     int ssthresh;
     file_data* window_packet;
@@ -46,6 +47,7 @@ typedef struct sender_info {
     float ca_extra;
     volatile int handshake_state;
     int packet_number;
+    int packet_sent;
 } sender_info;
 
 
@@ -71,7 +73,7 @@ file_data* file_data_array;
 
 int read_file(char* filename, unsigned long long int bytesToTransfer);
 
-float timeout_interval(float sampled_rtt);
+double timeout_interval(int RTT, int time);
 
 int adjust_window_size(int timeout_flag, int duplicate_flag);
 

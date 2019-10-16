@@ -10,15 +10,18 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <stdint.h>
 
-#define msg_header_size 5
+
+#define msg_header_size 6
 #define msg_body_size 1460
-#define msg_total_size 1463
+#define msg_total_size 1466
 #define MAX_SEQ_NUM 720
 #define RWS 360
 
 typedef struct receiver_info {
     int state;
+    int delayed_ack;
     int last_ack;// last seq
     int next_expected;//next seq
     int recv_window[RWS]; // -1 for not received, 0 for out of order received, 1 for in order ack
@@ -42,7 +45,7 @@ enum recv_state {
 //recv_info *recvInfo;
 //FILE *fPtr;
 
-void handle_data(char *packet, int recv_seq, recv_info* recvInfo, FILE* dest, int length);
+int handle_data(char *packet, int recv_seq, recv_info* recvInfo, FILE* dest, int length);
 void recv_packet(FILE* dest, recv_info* recvInfo);
 recv_info* int_receiver();
 
