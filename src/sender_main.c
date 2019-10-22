@@ -42,7 +42,7 @@ void reliablySend(){
     memset(ACK, 'K', msg_total_size);
 
     int sws = senderInfo->window_size;
-    file_data* base = senderInfo->window_packet;
+    // file_data* base = senderInfo->window_packet;
 
     volatile int state = senderInfo->handshake_state;
     if(state == LISTEN){
@@ -89,43 +89,36 @@ void reliablySend(){
     else if(senderInfo->handshake_state == ESTAB){
         /*take the window size and base*/
         // if (sws == 1)
-        printf("sws: %d ,packet_total: %d, packet_sent: %d\n", sws, senderInfo->packet_number, senderInfo->packet_sent);
+        // printf("sws: %d ,packet_total: %d, packet_sent: %d\n", sws, senderInfo->packet_number, senderInfo->packet_sent);
         for(int i = 0; i < sws; i++){
             /* case 1: sended and ack just skip */
-            if(base[i].status == 2){
+            if(senderInfo->window_packet[i].status == 2){
                 //do nothing
                 // printf("sent and acked \n");
                 continue;
             }
             /* case 2: not send yet */
-            else if(base[i].status == 0){
-                if(i == 0){
-                    //printf("try to send message\n");
-                    sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+            else if(senderInfo->window_packet[i].status == 0){
+                if(i == 0)
                     gettimeofday(senderInfo->timer_start, 0);
-                    base[0].status = 1;
-                    printf("send 0\n");
-                }
-                else{
-                    sendto(s, base[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-                    base[i].status = 1;
-                    printf("send %d\n", i);
-                }
+                
+                sendto(s, senderInfo->window_packet[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                senderInfo->window_packet[i].status = 1;
+                printf("sws: %d, send_seq: %d\n", sws, senderInfo->window_packet[i].seq);
+                
             }
             /* case 3:sended not ack yet */
-            else if(base[i].status == 1){
+            else if(senderInfo->window_packet[i].status == 1){
                 // printf("waiting ack\n");
                 gettimeofday(&timer_now, 0);
                 timersub(&timer_now, senderInfo->timer_start, &timer_diff);
                 if (timer_diff.tv_sec == 0 && timer_diff.tv_usec / 1000 > RTT){
-                    adjust_window_size(1, 0);
-                    /*reset index to resend*/
                     printf("TIMEOUT!!!!!\n");
-                    // printf("try to resend message rtt: %f timeout: %f\n",timer_diff.tv_usec / 1000, RTT);
-                    base[i].status = 0;
-                    i = i - 1;
-                    RTT += 10;
-                    
+                    adjust_window_size(1, 0);
+                    printf("try to resend message rtt: %f timeout: %f\n",timer_diff.tv_usec / 1000, RTT);
+                    sendto(s, senderInfo->window_packet[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                    printf("sws: %d, REsend_seq: %d\n", sws, senderInfo->window_packet[i].seq);
+                    // RTT += 10;
                 }
 
             }
@@ -189,11 +182,11 @@ void reliablyRecv(){
             //printf("I recieve an ack seq: %d\n", cur_seq );
             int expected_seq = (senderInfo->window_packet)->seq;
             /*first ack*/
-            if(senderInfo->last_ack_seq == -1)
+            if(senderInfo->last_ack_seq == -1){
                 senderInfo->last_ack_seq = cur_seq;
                 senderInfo->packet_sent += 1;
                 adjust_window_size(0, 0);
-
+            }
             /*case 1: sequence number match*/
             if(expected_seq == cur_seq){
                 // printf("EXACT ACK!!!!!!\n");
@@ -201,14 +194,9 @@ void reliablyRecv(){
                 /*find the coresponding packet for this ack*/        
                 (senderInfo->window_packet)->status = 2;
 
-                int count = 0;
-                for(i = 0; i < senderInfo->window_size; i++){
-                    if((senderInfo->window_packet + i)->status !=2)
-                        break;
-                    count++;                 
-                }
+                
                 /*check if we reach the end*/
-                if((senderInfo->window_packet + count - 1)->number == (senderInfo->packet_number - 1)){     
+                if((senderInfo->window_packet + 1 - 1)->number == (senderInfo->packet_number - 1)){     
                     senderInfo->handshake_state = CLOSE_WAIT;
                     ACK[0] = 'F';
                     ACK[1] = 'F';
@@ -225,17 +213,18 @@ void reliablyRecv(){
                 senderInfo->packet_sent += 1;
                 /*chage window base*/
                 /*reamining packet*/
-                int reamining = (senderInfo->packet_number) - (senderInfo->window_packet + count) -> number;
+                int reamining = (senderInfo->packet_number) - (senderInfo->window_packet + 1) -> number;
                 if(senderInfo->window_size > reamining)
                     senderInfo->window_size = reamining;
-                senderInfo->window_packet = senderInfo->window_packet + count;
+
+                senderInfo->window_packet = senderInfo->window_packet + 1;
                 /*release the lock*/
                 return;
             }
             
             /*case 2: sequence number greater than expected*/
-            if(expected_seq < cur_seq){
-                printf("CULMULATIVE ACK!!!!!!\n");
+            else if(expected_seq < cur_seq){
+                // printf("CULMULATIVE ACK!!!!!!\n");
                 /*change the status of currect ack*/
                 for(i = 0; i < senderInfo->window_size; i++){ //culmulative ack 
                     if((senderInfo->window_packet + i)->seq <= cur_seq)
@@ -279,17 +268,18 @@ void reliablyRecv(){
 
              
             /*case 3: sequence number less than expected*/
-            if(expected_seq > cur_seq){
-                printf("DUPLICATE ACK!!! RTT UPDATE!!!\n");
-                printf("EXPECTED_SEQ: %d, CUR_SEQ: %d\n",expected_seq, cur_seq);
+            else if(expected_seq > cur_seq){
+                // printf("DUPLICATE ACK!!! RTT UPDATE!!!\n");
+                // printf("EXPECTED_SEQ: %d, CUR_SEQ: %d\n",expected_seq, cur_seq);
 
                 timersub(&timer_now, senderInfo->timer_start, &timer_diff);
                 RTT = timeout_interval(RTT,timer_diff.tv_usec/1000);
                 /*increment duplicated ack*/
-                if(senderInfo->duplicate_ack != -1)
-                    senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
-                else
-                    senderInfo->duplicate_ack = 1;
+                // if(senderInfo->duplicate_ack != -1)
+                //     senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
+                // else
+                //     senderInfo->duplicate_ack = 1;
+                senderInfo->duplicate_ack += 1;
                 senderInfo->window_packet->status = 0;
                 /*adjust window size*/
                 adjust_window_size(0, 1);

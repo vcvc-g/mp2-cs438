@@ -215,6 +215,8 @@ int reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 int main(int argc, char** argv) {
 
     unsigned short int udpPort;
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
 
     if (argc != 3) {
         fprintf(stderr, "usage: %s UDP_port filename_to_write\n\n", argv[0]);
@@ -224,6 +226,10 @@ int main(int argc, char** argv) {
     udpPort = (unsigned short int) atoi(argv[1]);
 
     reliablyReceive(udpPort, argv[2]);
+
+    gettimeofday(&stop, NULL);
+    printf("took %lu\n", stop.tv_usec - start.tv_usec);
+    printf("Duration MS %'.3f\n", (double) (stop.tv_sec - start.tv_sec) * 1000 + (double) (stop.tv_usec - start.tv_usec) / 1000);
 
     return 0;
 }

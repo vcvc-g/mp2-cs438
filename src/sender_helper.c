@@ -144,7 +144,7 @@ int adjust_window_size(int timeout_flag, int duplicate_flag){
         else if(timeout_flag == 0){
             /*new ack*/
             if(cur_window_size < max_window_size){
-                senderInfo->window_size =  cur_window_size + 2;
+                senderInfo->window_size =  cur_window_size + 5;
             }
             senderInfo->duplicate_ack = 0;
             /*reach ssthresh*/
@@ -196,7 +196,7 @@ int adjust_window_size(int timeout_flag, int duplicate_flag){
 
         if(duplicate_flag == 1){
             if(cur_window_size < max_window_size){
-                senderInfo->window_size =  cur_window_size + 1;
+                senderInfo->window_size =  cur_window_size + 2;
             }
         }
         else if(timeout_flag == 1){
