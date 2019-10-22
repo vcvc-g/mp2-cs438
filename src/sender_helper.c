@@ -90,9 +90,8 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         file_data_array[i].status = -1;
         file_data_array[i].seq = i % max_seq;
         file_data_array[i].number = i;
-
     }
-    //printf("%d", packet_num);
+    printf("%d\n", packet_num);
 
     return packet_num;
 

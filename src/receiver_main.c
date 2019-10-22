@@ -129,15 +129,15 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 //////////////////////
                 //printf("recieve bytes : %d\n", recvBytes);
                 //printf("length: %d\n",length);
-                printf("seq num: %d\n", cur_seq );
-                printf("data:\n %s\n", recvBuffer + msg_header_size);
+                //printf("seq num: %d\n", cur_seq );
+                //printf("data:\n %s\n", recvBuffer + msg_header_size);
                 handle_data(recvBuffer + msg_header_size, cur_seq, recvInfo, dest, length);
                 /*generate ACK*/
                 ACK[0] = 'A';
                 ACK[1] = recvBuffer[1];
                 ACK[2] = recvBuffer[2];
                 sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen);
-                //printf("sendto finshed\n");
+                printf("send packet %d\n", cur_seq);
 
             }
         }
