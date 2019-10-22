@@ -87,21 +87,22 @@ void reliablySend(){
             file_data* base = senderInfo->window_packet;
             int i;
             // if (sws == 1)
-            //     printf("%d\n", sws);
             for(i = 0; i < sws; i++){
                 /* case 1: sended and ack just skip */
                 if(base[i].status == 1){
                     //do nothing
+                    //printf("skip %d\n", i);
                 }
                 /* case 2: not send yet */
                 else if(base[i].status == -1){
                     if(i == 0){
-                        //printf("try to send message\n");
+                        //printf("try to send message with sws : %d i :%d\n", sws, i);
                         sendto(s, base[0].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                         gettimeofday(senderInfo->timer_start, NULL);
                         base[0].status = 0;
                     }
                     else{
+                        //printf("try to send message with sws : %d i :%d\n", sws, i);
                         sendto(s, base[i].data, msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                         base[i].status = 0;
                     }
@@ -113,14 +114,15 @@ void reliablySend(){
                         timersub(&timer_now, senderInfo->timer_start, &timer_diff);
                         float sample_rtt = timer_diff.tv_usec / million;
                         //printf("checking ack");
-                        //if(sample_rtt > senderInfo->timeout){
-                            //adjust_window_size(1, 0);
+                        if(sample_rtt > senderInfo->timeout){
+                            adjust_window_size(1, 0);
                             /*reset index to resend*/
-                            //printf("try to resend message rtt: %f timeout: %f\n",sample_rtt, senderInfo->timeout);
-                            //base[i].status = -1;
-                            //i = i - 1;
-                        //}
+                            printf("try to resend message rtt: %f timeout: %f\n",sample_rtt, senderInfo->timeout);
+                            base[i].status = -1;
+                            i = i - 1;
+                        }
                     }
+                    //printf("not ack %d\n", i);
                 }
             }
             
@@ -132,7 +134,7 @@ void reliablySend(){
         char recvBuf[msg_total_size];
         /*waiting SYN from receiver*/
         memset(recvBuf, 'L', 100); // clean buffer needed 
-        //printf("recving ack running\n");
+        printf("recving ack running\n");
         if ((byte = recvfrom(s, recvBuf, msg_total_size, MSG_DONTWAIT, (struct sockaddr*)&si_other, &slen) == -1)){
             /*no recieve anything*/
             
@@ -179,11 +181,11 @@ void reliablySend(){
             //pthread_mutex_lock(&sender_mutex);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
             float sample_rtt = timer_diff.tv_usec / million;
-            //senderInfo->timeout = timeout_interval(sample_rtt);
+            senderInfo->timeout = timeout_interval(sample_rtt);
 
             /*find the sequence numebr*/
             int cur_seq = ((uint8_t)recvBuf[1])*255 + (uint8_t) recvBuf[2];
-            //printf("I recieve an ack seq: %d\n", cur_seq );
+            printf("I recieve an ack seq: %d\n", cur_seq );
             int expected_seq = (senderInfo->window_packet)->seq;
             /*first ack*/
             if(senderInfo->last_ack_seq == -1)
@@ -465,6 +467,7 @@ void *reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* fil
   
     /* Send data and receive acknowledgements on s*/
     //init_sender();
+
     int number = read_file(filename, bytesToTransfer);
     init_sender();
     senderInfo->packet_number = number;

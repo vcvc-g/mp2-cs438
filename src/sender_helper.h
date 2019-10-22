@@ -63,8 +63,6 @@ enum handshake_state {
     CLOSED
 };
 
-
-
 sender_info* senderInfo;
 
 file_data* file_data_array;

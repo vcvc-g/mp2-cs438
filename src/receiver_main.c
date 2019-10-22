@@ -109,6 +109,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
             if (recvBuffer[0] == 'F' && recvBuffer[1] == 'F' && recvBuffer[2] == 'F'){
                 recvInfo->handshake_state = CLOSED_WAIT;
                 /*generate ACK*/
+                printf("Sending FIN bit\n");
                 ACK[0] = 'F';
                 ACK[1] = 'F';
                 ACK[2] = 'F';
@@ -128,8 +129,8 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 //////////////////////
                 //printf("recieve bytes : %d\n", recvBytes);
                 //printf("length: %d\n",length);
-                //printf("seq num: %d\n", cur_seq );
-                //printf("data:\n %s\n",recvBuffer + msg_header_size);
+                printf("seq num: %d\n", cur_seq );
+                printf("data:\n %s\n", recvBuffer + msg_header_size);
                 handle_data(recvBuffer + msg_header_size, cur_seq, recvInfo, dest, length);
                 /*generate ACK*/
                 ACK[0] = 'A';
