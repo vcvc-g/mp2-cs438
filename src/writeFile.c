@@ -7,8 +7,24 @@ int main() {
    int i = 0;
    //(44521*1460)
    fp = fopen("./hello.txt", "w+");
-   for(i = 0; i < (10*1460); i++){
+   for(i = 0; i < (4*1460); i++){
+      //char a = i % 10 + 65;
+      //fputs("A", fp);
+      if(i < 1460)
+         fputs("A", fp);
+      else if(i < 2*1460)
+         fputs("b", fp);
+      else if(i < 3*1460)
+        fputs("c", fp);
+      else if(i < 4*1460)
         fputs("d", fp);
+      // else if(i < 5*1460)
+      //   fputs("e\n", fp);
+      // else if(i < 6*1460)
+      //   fputs("f\n", fp);
+      // else{
+      //    fputs("f\n", fp);
+      // }
    }
    fclose(fp);
 }
