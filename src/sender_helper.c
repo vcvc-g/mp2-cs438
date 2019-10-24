@@ -3,32 +3,6 @@
 #define BETA  0.25
 #define SAFETY_MARGIN 15
 
-
-
-
-// int main(int argc, char* argv[]) {
-
-//     FILE* fd = fopen(argv[1], "w");
-
-//     for(int i = 0; i < 1460; i++ )
-//         fprintf(fd,"%d", 1);
-//     for(int i = 0; i < 1460; i++ )
-//         fprintf(fd,"%d", 2);
-//     fclose(fd);
-
-
-//      int packet_number = read_file(argv[1], 1460*2);
-
-//     for(int i = 0; i < packet_number; i++){
-//         size_t len = file_data_array[i].length;
-//         for(int j = sender_header_size; j < len; j++)
-//             printf("%c", *(file_data_array[i].data + j));
-//         printf("\n");
-//     }
-
-//     return 0;
-// }
-
 int read_file(char* filename, unsigned long long int bytesToTransfer){
     int i, j;
     FILE* fd = fopen(filename, "r");
@@ -78,11 +52,8 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
             msg[5] = (cur_file_length) % 255;
         }
 
-        //printf("seq: %d->%d %d->%d\n",(i % max_seq) / 255, (uint8_t)msg[1], (i % max_seq) % 255, (uint8_t)msg[2]);
-        //printf("seq: %d->%d %d->%d\n",cur_file_length / 1400, (uint8_t)msg[3], (cur_file_length - 1400) % 255, (uint8_t)msg[4]);
         for(j = 0; j < cur_file_length; j++ ){
             msg[j + sender_header_size] = *(start_point + j);
-            //printf("%c", msg[j + 5]);
         }
         
         file_data_array[i].data = msg;
@@ -91,7 +62,7 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         file_data_array[i].seq = i % max_seq;
         file_data_array[i].number = i;
     }
-    printf("%d\n", packet_num);
+    printf("packet_number: %d\n", packet_num);
 
     return packet_num;
 

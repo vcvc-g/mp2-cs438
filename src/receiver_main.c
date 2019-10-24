@@ -123,51 +123,21 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 int cur_seq = (uint8_t) recvBuffer[1]*255 + (uint8_t) recvBuffer[2];
                 /*get length*/
                 int length = (uint8_t) recvBuffer[3]*1460 + (uint8_t) recvBuffer[4]*255 + (uint8_t) recvBuffer[5];
-                //printf("rece number :-------->%d %d %d \n", (uint8_t) recvBuffer[3], (uint8_t)recvBuffer[4],  (uint8_t) recvBuffer[5]);
-                ///// FOR TESTING /////
-                //length = recvBytes - msg_header_size; //
-                //////////////////////
+
                 //printf("recieve bytes : %d\n", recvBytes);
                 //printf("length: %d\n",length);
-                printf("seq num: %d\n", cur_seq );
+                //printf("seq num: %d\n", cur_seq );
                 //printf("%s", recvBuffer + msg_header_size);
-                if(cur_seq >= recvInfo->next_expected)
+                //if(cur_seq >= recvInfo->next_expected || cur_seq < (360 - (720 - recvInfo->next_expected)))
                     handle_data(recvBuffer + msg_header_size, cur_seq, recvInfo, dest, length);
                 /*generate ACK*/
                 ACK[0] = 'A';
                 ACK[1] = recvBuffer[1];
                 ACK[2] = recvBuffer[2];
                 sentBytes = sendto(s, ACK, msg_total_size, 0, (struct sockaddr*)&si_other, slen);
-                //printf("send packet %d\n", cur_seq);
 
             }
-        }
-
-    
-        //printf("receive packet OK\n");
-        /* Read header and response */
-        // if((SYNACK(seq=y, ACKnum=x+1))&(recvInfo->state == SYN_SENT)){
-        //     sendto(ACK(ACKnum=y+1));
-        //     recvInfo->state = ESTAB;
-        // }
-
-        // if(recvInfo->state == ESTAB){
-            // int recv_seq = recvBuffer[1]*255 + recvBuffer[2];
-        /*generate ACK*/
-
-        //printf("handle msg packet OK\n\n\n");
-
-        // printf("send ACK packet OK\n");
-        // }
-
-        // else if(){
-        //     recvInfo->state = FIN_WAIT2
-        // }   
-        // else if(){
-        //     recvInfo->state = TIME_WAIT
-        //     timer 30s
-        //     recvInfo->state = CLOSED
-        // }           
+        }     
 
     }
 }
