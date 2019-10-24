@@ -7,7 +7,7 @@ int main() {
    int i = 0;
    //(44521*1460)
    fp = fopen("./hello.txt", "w+");
-   for(i = 0; i < (720*1460); i++){
+   for(i = 0; i < (1440*1460); i++){
       //char a = i % 10 + 65;
       fputs("A\n", fp);
       //  if(i < 1460)

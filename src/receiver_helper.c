@@ -18,8 +18,8 @@ void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int 
     int expected_seq = recvInfo->next_expected;
     /*check if in the window*/
     /*recv_----->720, expected---->720*/
-    //if(((0 <= (recv_seq - expected_seq)) && ((recv_seq - expected_seq) < RWS)) ||
-            //(recv_seq + MAX_SEQ_NUM - expected_seq < RWS)){
+    if(((recv_seq - expected_seq) < RWS)||
+            (recv_seq + MAX_SEQ_NUM - expected_seq < RWS)){
         int window_idx = recv_seq % RWS;
         //printf("window_idx = %d\n", window_idx);
         /*check duplicate*/
@@ -30,7 +30,9 @@ void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int 
             recvInfo->recv_window[window_idx] = 1;
             //sprintf("recvInfo->recv_buffer[%d]: %s\n",window_idx, recvInfo->recv_buffer[window_idx]);
             int idx = 0;
+            int next_seq = 0;
             for(i = 0; i < RWS; i++){
+                next_seq = (expected_seq + i);
                 idx = (expected_seq + i) % RWS;
                 if(recvInfo->recv_window[idx]){
                 //printf("recvInfo->recv_buffer[%d]: %s\n",window_idx, recvInfo->recv_buffer[window_idx]);
@@ -40,12 +42,12 @@ void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int 
                 else
                 break;
             }
-            recvInfo->next_expected = idx % MAX_SEQ_NUM;
+            recvInfo->next_expected = next_seq % MAX_SEQ_NUM;
         }
 
         //recvInfo->next_expected = idx % MAX_SEQ_NUM;
         //printf("expected number: %d\n", recvInfo->next_expected);
-    //}
+    }
     return;
 
 }

@@ -128,7 +128,8 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 //printf("length: %d\n",length);
                 //printf("seq num: %d\n", cur_seq );
                 //printf("%s", recvBuffer + msg_header_size);
-                //if(cur_seq >= recvInfo->next_expected || cur_seq < (360 - (720 - recvInfo->next_expected)))
+                //160 320
+                if(cur_seq >= recvInfo->next_expected || cur_seq < (recvInfo->next_expected - 360))
                     handle_data(recvBuffer + msg_header_size, cur_seq, recvInfo, dest, length);
                 /*generate ACK*/
                 ACK[0] = 'A';
