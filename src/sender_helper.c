@@ -4,7 +4,7 @@
 #define SAFETY_MARGIN 15
 
 int read_file(char* filename, unsigned long long int bytesToTransfer){
-    int i, j;
+    unsigned long long int i, j;
     FILE* fd = fopen(filename, "r");
     if (fd == NULL) {
         printf("ERROR: FILE OPEN FAILED\n");
@@ -27,7 +27,6 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
     char *file = malloc(data_size);
     fread(file, data_size, 1, fd);
     fclose(fd);
-
     /*construct the file data array*/
     size_t cur_file_length = 0;
     for(i = 0; i < packet_num; i++ ){
@@ -38,31 +37,18 @@ int read_file(char* filename, unsigned long long int bytesToTransfer){
         /*create message*/
         //printf("cur file length:%d \n", cur_file_length);
         //char hee[10]
-        size_t total = cur_file_length + 5;
-        char* msg = (char* )malloc(total);
-        memset(msg, '\0', cur_file_length + sender_header_size);
-        msg[0] = 'M';
-        msg[1] = (i % max_seq) / 255; //make sure the number is within one byte
-        msg[2] = (i % max_seq) % 255;
-        msg[3] = cur_file_length / 1460;
-        msg[4] = 0;
-        msg[5] = 0;
-        if(cur_file_length / 1460 == 0){
-            msg[4] = (cur_file_length) / 255;
-            msg[5] = (cur_file_length) % 255;
-        }
+        file_data_array[i].length = cur_file_length;
 
         for(j = 0; j < cur_file_length; j++ ){
-            msg[j + sender_header_size] = *(start_point + j);
+           *(file_data_array[i].data + j) = *(start_point + j);
         }
-        
-        file_data_array[i].data = msg;
-        file_data_array[i].length = sender_header_size + cur_file_length;
+        file_data_array[i].type[0] = 'M';
+        file_data_array[i].type[1] = 'M';
+        file_data_array[i].type[2] = 'M';
         file_data_array[i].status = -1;
-        file_data_array[i].seq = i % max_seq;
         file_data_array[i].number = i;
     }
-    printf("packet_number: %d\n", packet_num);
+    //printf("packet_number: %d\n", packet_num);
 
     return packet_num;
 

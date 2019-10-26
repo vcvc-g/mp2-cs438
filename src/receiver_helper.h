@@ -15,14 +15,13 @@
 
 #define msg_header_size 6
 #define msg_body_size 1460
-#define msg_total_size 1466
 #define MAX_SEQ_NUM 720
 #define RWS 360
 
 typedef struct receiver_info {
     int state;
     int last_ack;// last seq
-    int next_expected;//next seq
+    unsigned long long int next_expected;//next seq
     int recv_window[RWS]; // -1 for not received, 0 for out of order received, 1 for in order ack
     char recv_buffer[RWS][msg_body_size];
     int recv_dataLen[RWS];
@@ -31,6 +30,22 @@ typedef struct receiver_info {
 
 }recv_info;
 
+
+typedef struct file_data_struct{
+    int length;
+    unsigned long long int number;
+    char type[3];
+    char data[1460];
+    int status; /** -1 means not send
+                 * 0  means send not ack
+                 * 1 means ack 
+                 **/
+} file_data;
+
+typedef struct ACK{
+    char type[3];
+    unsigned long long int number;
+} ACK;
 
 //012345
 //[012]-> [123]
@@ -44,7 +59,7 @@ enum recv_state {
 //recv_info *recvInfo;
 //FILE *fPtr;
 
-void handle_data(char *packet, int recv_seq, recv_info* recvInfo, FILE* dest, int length);
+void handle_data(file_data *data, unsigned long long int recv_seq, recv_info* recvInfo, FILE* dest, file_data* file_array);
 void recv_packet(FILE* dest, recv_info* recvInfo);
 recv_info* int_receiver();
 

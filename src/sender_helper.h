@@ -8,16 +8,14 @@
 
 #define max_window_size 360
 #define msg_body_size 1460
-#define sender_header_size 6
-#define msg_total_size 1466
 #define max_seq 720
 #define million 1000
 
 typedef struct file_data_struct{
-    size_t length;
-    int number;
-    int seq;
-    char* data;
+    int length;
+    unsigned long long int number;
+    char type[3];
+    char data[1460];
 
     int status; /** -1 means not send
                  * 0  means send not ack
@@ -25,12 +23,10 @@ typedef struct file_data_struct{
                  **/
 } file_data;
 
-typedef struct sender_window{
-
-
-
-
-} sw;
+typedef struct ACK{
+    char type[3];
+    unsigned long long int number;
+} ACK;
 
 typedef struct sender_info {
     double timeout;

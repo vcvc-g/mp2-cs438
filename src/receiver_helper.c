@@ -12,41 +12,24 @@ void write_file(char *buf, int length, FILE* fptr){
 }
    
 
-void handle_data(char *data, int recv_seq, recv_info* recvInfo, FILE* dest, int length){
-    size_t data_len, i;
+void handle_data(file_data *data, unsigned long long int recv_seq, recv_info* recvInfo, FILE* dest, file_data* file_array){
+    size_t data_len = 0;
     /*check if recv_seq in window */
-    int expected_seq = recvInfo->next_expected;
+    unsigned long long int expected_seq = recvInfo->next_expected;
+    size_t i = expected_seq;
     /*check if in the window*/
     /*recv_----->720, expected---->720*/
-    if(((recv_seq - expected_seq) < RWS)||
-            (recv_seq + MAX_SEQ_NUM - expected_seq < RWS)){
-        int window_idx = recv_seq % RWS;
-        //printf("window_idx = %d\n", window_idx);
-        /*check duplicate*/
-        if(recvInfo->recv_window[window_idx] != 1){
-            /* copy packet data to receiver buffer, mark 1 for packet in recv_window */
-            memcpy(recvInfo->recv_buffer[window_idx], data, length); // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
-            recvInfo->recv_dataLen[window_idx] = length; // MSG_BODY_SIZE OF TESTING, SHOULD BE DATA_LEN
-            recvInfo->recv_window[window_idx] = 1;
-            //sprintf("recvInfo->recv_buffer[%d]: %s\n",window_idx, recvInfo->recv_buffer[window_idx]);
-            int idx = 0;
-            int next_seq = 0;
-            for(i = 0; i < RWS; i++){
-                next_seq = (expected_seq + i);
-                idx = (expected_seq + i) % RWS;
-                if(recvInfo->recv_window[idx]){
-                //printf("recvInfo->recv_buffer[%d]: %s\n",window_idx, recvInfo->recv_buffer[window_idx]);
-                    write_file(recvInfo->recv_buffer[idx], recvInfo->recv_dataLen[idx], dest); 
-                    recvInfo->recv_window[idx] = 0;
-                }
-                else
-                break;
-            }
-            recvInfo->next_expected = next_seq % MAX_SEQ_NUM;
+    if(expected_seq <= recv_seq ){
+        if(file_array[recv_seq].status == -10)
+            memcpy(&file_array[recv_seq], data, sizeof(file_data));
+            
+        int idx = 0;
+        int next_seq = 0;
+        while(file_array[i].status != -10){
+            write_file(file_array[i].data, file_array[i].length, dest);
+            i++;
         }
-
-        //recvInfo->next_expected = idx % MAX_SEQ_NUM;
-        //printf("expected number: %d\n", recvInfo->next_expected);
+        recvInfo->next_expected = i;
     }
     return;
 
