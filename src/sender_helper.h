@@ -16,6 +16,7 @@ typedef struct file_data_struct{
     unsigned long long int number;
     char type[3];
     char data[1460];
+    struct timeval timer; 
 
     int status; /** -1 means not send
                  * 0  means send not ack
@@ -65,7 +66,9 @@ file_data* file_data_array;
 
 int read_file(char* filename, unsigned long long int bytesToTransfer);
 
-float timeout_interval(double sampled_rtt);
+//float timeout_interval(double sampled_rtt);
+
+long double timeout_interval(unsigned long long int idx);
 
 int adjust_window_size(int timeout_flag, int duplicate_flag);
 

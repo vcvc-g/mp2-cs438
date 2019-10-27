@@ -48,6 +48,11 @@ void reliablySend(){
     //printf("%d", msg_total_size);
      
     while(1){
+        
+        if (senderInfo->window_size > senderInfo->ssthresh)
+        {
+            senderInfo->ssthresh = senderInfo->window_size + 10;
+        }
         int state = senderInfo->handshake_state;
         if(state == LISTEN){
             control_msg.type[0] = 'S';
@@ -93,6 +98,7 @@ void reliablySend(){
             int sws = senderInfo->window_size;
             file_data* base = senderInfo->window_packet;
             int i = 0;
+            //printf("sws: %d\n", sws);
             for(i = 0; i < sws; i++){
                 /* case 1: sended and ack just skip */
                 if(base[i].status == 1){
@@ -100,33 +106,42 @@ void reliablySend(){
                 }
                 /* case 2: not send yet */
                 else if(base[i].status == -1){
+                         //printf("no finshed\n");
                     if(i == 0){
-                        //printf("try to send message with sws : %d i :%d\n", sws, i);
+                        //rintf("try to send message with sws : %d i :%d\n", sws, base[i].number );
+                        //sendto(s, &base[0], msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
                         sendto(s, &base[0], msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
-                        gettimeofday(senderInfo->timer_start, NULL);
+                        gettimeofday(&base[0].timer, NULL);
                         //printf("send message with sws : %d i :%d\n", sws, base[i].seq);
                         base[0].status = 0;
                     }
                     else{
-                        //printf("try to send message with sws : %d i :%d\n", sws, base[i].seq);
+                        //printf("try to send message with sws : %d i :%d\n", sws, base[i].number);
                         sendto(s, &base[i], msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                        gettimeofday(&base[i].timer, NULL);
                         base[i].status = 0;
                     }
                 }
                 /* case 3:sended not ack yet */
                 else if(base[i].status == 0){
-                    if(i == 0){                  
+                         //printf("-no finshed\n");
+                    //if(i == 0){                  
                         gettimeofday(&timer_now, NULL);
-                        timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-                        float sample_rtt = timer_diff.tv_usec / million;
+                        timersub(&timer_now, &base[i].timer, &timer_diff);
+                        double sample_rtt = (double)(timer_diff.tv_usec / million);
+                        //printf("resend %llu  message rtt: %lf timeout: %lf\n",base[i].number ,sample_rtt,senderInfo->timeout);
                         if(sample_rtt > senderInfo->timeout){
+                            //senderInfo->timeout = senderInfo->timeout * 1.5;
                             adjust_window_size(1, 0);
+                            sendto(s, &base[i], msg_total_size, 0, (struct sockaddr*)&si_other, sizeof(si_other));
+                            gettimeofday(&base[i].timer, NULL);
+                            base[i].status = 0;
                             /*reset index to resend*/
-                            //printf("try to resend %d  message rtt: %f timeout: %f\n");
+                            //printf("------resend %llu  message rtt: %lf timeout: %f\n",base[i].number ,sample_rtt,senderInfo->timeout);
                             base[i].status = -1;
                             i = i - 1;
                         }
-                    }
+                    //}
                     //printf("not ack %d\n", i);
                 }
             }
@@ -147,6 +162,7 @@ void reliablySend(){
             //printf("sddddddddddddddddddddddddddddddddddddddddddd");
             
         }
+        //printf("%lf\n", senderInfo->timeout);
         //printf("recieve %c\n", receiver_ack.type[0]);
 
         if (senderInfo->handshake_state == CLOSE_WAIT){
@@ -179,8 +195,8 @@ void reliablySend(){
             continue;
         }
 
-        int sws = senderInfo->window_size;
-        printf("sws %d\n", sws);
+        //int sws = senderInfo->window_size;
+        //printf("sws %d\n", sws);
         /*case recieve an ack*/
         if(receiver_ack.type[0] == 'A'){
             /*calculate the new timeout interval*/
@@ -188,21 +204,29 @@ void reliablySend(){
             /*grab the lock*/
             //pthread_mutex_lock(&sender_mutex);
             timersub(&timer_now, senderInfo->timer_start, &timer_diff);
-            float sample_rtt = timer_diff.tv_usec / million;
+            //float sample_rtt = (timer_diff.tv_usec / million);
+            //printf("sameple rtt: %f\n", sample_rtt );
             //senderInfo->timeout = timeout_interval(sample_rtt);
+            
 
             /*find the sequence numebr*/
             unsigned long long int cur_seq = receiver_ack.number;
             //printf("I recieve an ack seq: %d\n", cur_seq );
             unsigned long long int expected_seq = (senderInfo->window_packet)->number;
-            //printf("I recieve an ack seq: %d: %d \n", cur_seq, expected_seq );
+
+            //senderInfo->timeout = timeout_interval(cur_seq);
+            //printf("I recieve an ack seq: %llu: %llu \n", cur_seq, expected_seq );
             /*first ack*/
             //if(senderInfo->last_ack_seq == -1)
-                //senderInfo->last_ack_seq = cur_seq;
-
             /*case 1: sequence number match*/
-            if(expected_seq >= cur_seq){
+            if(expected_seq == cur_seq){
+                //senderInfo->timeout = 40.00;
+                //senderInfo->timeout = timeout_interval(cur_seq);
                 //printf("enter the importtant part %llu --- %llu\n", expected_seq, cur_seq);
+                
+                gettimeofday(senderInfo->timer_start, NULL);
+                senderInfo->duplicate_ack = 0;
+
                 file_data_array[cur_seq].status = 1;
                 int count = 0;
                 for(i = 0; i < (senderInfo->packet_number); i++){
@@ -230,7 +254,8 @@ void reliablySend(){
                 /*clear duplicate ACK*/
                 senderInfo->duplicate_ack = 0;
                 /*adjust window*/
-                adjust_window_size(0, 0);
+                if(expected_seq == cur_seq)
+                    adjust_window_size(0, 0);
                 /*chage window base*/
                 /*reamining packet*/
                 int reamining = (senderInfo->packet_number) - (senderInfo->window_packet + count) -> number;
@@ -244,27 +269,36 @@ void reliablySend(){
                 continue;
             }
             
-            // /*case 2: sequence number greater than expected*/
-            // if(expected_seq < cur_seq || cur_seq < (sws - (max_seq - expected_seq))){
-            //     //printf("I face a smaller case %d : %d\n", expected_seq, cur_seq);
-            //     /*change the status of currect ack*/
-            //     for(i = 0; i < (max_seq/2); i++){
-            //         if((senderInfo->window_packet + i)->seq == cur_seq){
-            //             (senderInfo->window_packet + i)->status = 1;
-            //         }
-            //     }
-            //     continue;
-            // }     
-            /*case 3: sequence number less than expected*/
-            else if(expected_seq > cur_seq){
-                 //      printf("I am now bigger\n");
-                /*increment duplicated ack*/
+            /*case 2: sequence number greater than expected*/
+            if(expected_seq < cur_seq ){
+                //senderInfo->timeout = timeout_interval(cur_seq);
+                //senderInfo->last_ack_seq = cur_seq;senderInfo->timeout = timeout_interval(cur_seq);
+                //printf("I face a smaller case %d : %d\n", expected_seq, cur_seq);
+                /*change the status of currect ack*/
+                file_data_array[cur_seq].status = 1;
                 if(senderInfo->duplicate_ack != -1)
-                    senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
+                     senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
                 else
                     senderInfo->duplicate_ack = 1;
                 /*adjust window size*/
-                adjust_window_size(0, 1);
+                //adjust_window_size(0, 1);
+
+                continue;
+            }     
+            /*case 3: sequence number less than expected*/
+            else if(expected_seq > cur_seq){
+                //printf("I am now bigger\n");
+                /*increment duplicated ack*/
+            //          timersub(&timer_now, senderInfo->timer_start, &timer_diff);
+            // float sample_rtt = (timer_diff.tv_usec / million);
+            // printf("sameple rtt: %f\n", sample_rtt );
+            // senderInfo->timeout = timeout_interval(sample_rtt);
+                // if(senderInfo->duplicate_ack != -1)
+                //     senderInfo->duplicate_ack = senderInfo->duplicate_ack + 1;
+                // else
+                //     senderInfo->duplicate_ack = 1;
+                // /*adjust window size*/
+                // adjust_window_size(0, 1);
                 /*release the lock*/
                 continue;
             }

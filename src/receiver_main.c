@@ -60,9 +60,9 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
         //sleep(1);
         //printf("recv is running now\n");
          /* CLOSED WAIT state, check if sender get FINACK */
-         recieve_data->type[0] == 'L';
-         recieve_data->type[1] == 'L';
-         recieve_data->type[2] == 'L';
+         recieve_data->type[0] = 'L';
+         recieve_data->type[1] = 'L';
+         recieve_data->type[2] = 'L';
         if (recvInfo->handshake_state == CLOSED_WAIT){
             /*generate ACK*/
             to_sender_ACK.type[0] = 'F';
@@ -130,7 +130,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                 //printf("hello?\n");
                 /*get sequnce number*/
                 unsigned long long int cur_seq = recieve_data->number;
-                //printf("cur_seq : %llu\n", cur_seq);
+                //xwwprintf("cur_seq : %llu\n", cur_seq);
                 if(cur_seq >= magic){
                     unsigned long long int old_magic = magic;
                     magic = magic + cur_seq;
@@ -138,7 +138,7 @@ void recv_packet(FILE* dest, recv_info* recvInfo){
                         for(int i = old_magic; i < magic; i++)
                             file_data_array[i].status = -10;
                 }
-                handle_data(recieve_data, cur_seq, recvInfo, dest, file_data_array);
+                handle_data(recieve_data, cur_seq, recvInfo, dest, file_data_array, magic);
                 /*generate ACK*/
                 to_sender_ACK.type[0] = 'A';
                 to_sender_ACK.type[1] = 'A';

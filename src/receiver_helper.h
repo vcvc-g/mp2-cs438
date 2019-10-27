@@ -36,6 +36,7 @@ typedef struct file_data_struct{
     unsigned long long int number;
     char type[3];
     char data[1460];
+    struct timeval timer; 
     int status; /** -1 means not send
                  * 0  means send not ack
                  * 1 means ack 
@@ -59,7 +60,7 @@ enum recv_state {
 //recv_info *recvInfo;
 //FILE *fPtr;
 
-void handle_data(file_data *data, unsigned long long int recv_seq, recv_info* recvInfo, FILE* dest, file_data* file_array);
+void handle_data(file_data *data, unsigned long long int recv_seq, recv_info* recvInfo, FILE* dest, file_data* file_array, unsigned long long int magic);
 void recv_packet(FILE* dest, recv_info* recvInfo);
 recv_info* int_receiver();
 

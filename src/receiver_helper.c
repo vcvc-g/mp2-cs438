@@ -12,8 +12,8 @@ void write_file(char *buf, int length, FILE* fptr){
 }
    
 
-void handle_data(file_data *data, unsigned long long int recv_seq, recv_info* recvInfo, FILE* dest, file_data* file_array){
-    size_t data_len = 0;
+void handle_data(file_data *data, unsigned long long int recv_seq, recv_info* recvInfo, FILE* dest, file_data* file_array, unsigned long long int magic){
+    //size_t data_len = 0;
     /*check if recv_seq in window */
     unsigned long long int expected_seq = recvInfo->next_expected;
     size_t i = expected_seq;
@@ -23,11 +23,13 @@ void handle_data(file_data *data, unsigned long long int recv_seq, recv_info* re
         if(file_array[recv_seq].status == -10)
             memcpy(&file_array[recv_seq], data, sizeof(file_data));
             
-        int idx = 0;
-        int next_seq = 0;
+        //int idx = 0;
+        //int next_seq = 0;
         while(file_array[i].status != -10){
             write_file(file_array[i].data, file_array[i].length, dest);
             i++;
+            if(i == magic)
+                break;
         }
         recvInfo->next_expected = i;
     }
